@@ -1,0 +1,152 @@
+import { P } from '../data/palette';
+import { DAY_CONTEXTS, SYMPTOMS } from '../data/triggers';
+import { bucketColor, bucketBg, bucketAdvice } from '../data/bucketUtils';
+import BucketGauge from '../components/BucketGauge';
+
+export default function HomeScreen({ logData, checkin, profile, onSetDayContext, setTab }) {
+  const { items = [], totalLoad = 0, dayContext } = logData;
+  const thresholds = profile?.thresholds;
+  const advice = bucketAdvice(totalLoad, dayContext);
+
+  return (
+    <div>
+      {/* Gauge */}
+      <div style={{ padding: '28px 20px 20px', textAlign: 'center' }}>
+        <BucketGauge pct={totalLoad} thresholds={thresholds} />
+      </div>
+
+      {/* Day context */}
+      <div style={{ padding: '0 20px 16px' }}>
+        <p style={{ fontSize: 12, color: P.textLight, marginBottom: 8, textAlign: 'center', fontWeight: 500 }}>
+          What kind of day is this?
+        </p>
+        <div style={{ display: 'flex', gap: 7, flexWrap: 'wrap', justifyContent: 'center' }}>
+          {DAY_CONTEXTS.map(ctx => (
+            <button
+              key={ctx.id}
+              onClick={() => onSetDayContext(dayContext === ctx.id ? null : ctx.id)}
+              style={{
+                padding: '7px 13px',
+                background: dayContext === ctx.id ? P.amberLight : P.card,
+                border: `1.5px solid ${dayContext === ctx.id ? P.amber : P.border}`,
+                borderRadius: 20, cursor: 'pointer',
+                fontSize: 13, color: dayContext === ctx.id ? P.brown : P.textMid,
+                fontFamily: "'DM Sans', sans-serif",
+                fontWeight: dayContext === ctx.id ? 600 : 400,
+                display: 'flex', alignItems: 'center', gap: 5,
+              }}
+            >
+              {ctx.emoji} {ctx.label}
+            </button>
+          ))}
+        </div>
+      </div>
+
+      {/* Advice banner */}
+      {advice && (
+        <div style={{
+          margin: '0 20px 16px',
+          padding: '13px 16px',
+          background: totalLoad > 70 ? P.orangeLight : P.greenLight,
+          border: `1.5px solid ${totalLoad > 70 ? '#E0A090' : '#A8CCB0'}`,
+          borderRadius: 13,
+        }}>
+          <p style={{ margin: 0, fontSize: 14, color: P.textDark, lineHeight: 1.55, fontFamily: "'DM Sans', sans-serif" }}>
+            {advice}
+          </p>
+          {dayContext && totalLoad < 55 && (
+            <p style={{ margin: '6px 0 0', fontSize: 12, color: P.textLight, fontStyle: 'italic' }}>
+              {DAY_CONTEXTS.find(c => c.id === dayContext)?.tip}
+            </p>
+          )}
+        </div>
+      )}
+
+      {/* Today's log */}
+      {items.length > 0 && (
+        <div style={{ padding: '0 20px 16px' }}>
+          <p style={{ fontSize: 11, color: P.textLight, letterSpacing: '0.1em', textTransform: 'uppercase', fontWeight: 600, marginBottom: 10 }}>
+            Today's Log
+          </p>
+          <div style={{ display: 'flex', flexWrap: 'wrap', gap: 7 }}>
+            {items.map(item => (
+              <div key={item.triggerId} style={{
+                padding: '7px 12px',
+                background: P.card, border: `1.5px solid ${P.border}`,
+                borderRadius: 20, display: 'flex', alignItems: 'center', gap: 5,
+                fontSize: 13, color: P.textMid, fontFamily: "'DM Sans', sans-serif",
+              }}>
+                {item.label}
+                <span style={{ fontSize: 10, color: bucketColor(item.effectiveLoad * 3), fontWeight: 700 }}>
+                  +{item.effectiveLoad}%
+                </span>
+              </div>
+            ))}
+          </div>
+        </div>
+      )}
+
+      {/* Morning check-in symptoms */}
+      {checkin && checkin.symptoms?.length > 0 && (
+        <div style={{ padding: '0 20px 16px' }}>
+          <p style={{ fontSize: 11, color: P.textLight, letterSpacing: '0.1em', textTransform: 'uppercase', fontWeight: 600, marginBottom: 10 }}>
+            How You Felt This Morning
+          </p>
+          <div style={{ display: 'flex', flexWrap: 'wrap', gap: 7 }}>
+            {checkin.symptoms.map(id => {
+              const s = SYMPTOMS.find(x => x.id === id);
+              return s ? (
+                <div key={id} style={{
+                  padding: '7px 12px',
+                  background: id === 'fine' ? P.greenLight : P.orangeLight,
+                  border: `1.5px solid ${id === 'fine' ? '#A8CCB0' : '#E0A090'}`,
+                  borderRadius: 20, fontSize: 13,
+                  color: id === 'fine' ? P.green : P.orange,
+                  fontFamily: "'DM Sans', sans-serif",
+                }}>
+                  {s.emoji} {s.label}
+                </div>
+              ) : null;
+            })}
+          </div>
+        </div>
+      )}
+
+      {/* Actions */}
+      <div style={{ padding: '8px 20px', display: 'grid', gridTemplateColumns: '1fr 1fr', gap: 10 }}>
+        <button
+          onClick={() => setTab('log')}
+          style={{
+            padding: '18px', background: P.brown, color: 'white',
+            border: 'none', borderRadius: 16, fontSize: 15,
+            fontFamily: "'DM Sans', sans-serif", fontWeight: 600, cursor: 'pointer',
+          }}
+        >
+          + Log Intake
+        </button>
+        <button
+          onClick={() => setTab('checkin')}
+          style={{
+            padding: '18px',
+            background: checkin ? P.greenLight : P.card,
+            color: checkin ? P.green : P.textMid,
+            border: `2px solid ${checkin ? '#A8CCB0' : P.border}`,
+            borderRadius: 16, fontSize: 15,
+            fontFamily: "'DM Sans', sans-serif", fontWeight: 600, cursor: 'pointer',
+          }}
+        >
+          {checkin ? '✓ Checked In' : '☀️ Check In'}
+        </button>
+      </div>
+
+      {/* Empty state */}
+      {items.length === 0 && !checkin && (
+        <div style={{ padding: '24px 20px', textAlign: 'center' }}>
+          <p style={{ fontSize: 14, color: P.textLight, lineHeight: 1.6, fontFamily: "'DM Sans', sans-serif" }}>
+            Start by logging what you've eaten today,<br />or check in with how you're feeling.
+          </p>
+        </div>
+      )}
+    </div>
+  );
+}
