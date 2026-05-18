@@ -1,4 +1,4 @@
-import { useState } from 'react';
+import { useState, useEffect } from 'react';
 import { AuthProvider, useAuth } from './contexts/AuthContext';
 import { useProfile } from './hooks/useProfile';
 import { useDailyLog } from './hooks/useDailyLog';
@@ -29,6 +29,10 @@ function AppShell() {
   const { checkin, loading: checkinLoading, saveCheckin } = useCheckin(currentUser?.uid);
   const { history, checkinHistory, loading: historyLoading, dateKeys, appendItemToDate } = useLogHistory(currentUser?.uid, 30);
   const [tab, setTab] = useState('home');
+
+  useEffect(() => {
+    if (currentUser?.uid) setTab('home');
+  }, [currentUser?.uid]);
 
   if (!currentUser) return <AuthScreen />;
   if (profileLoading || logLoading || checkinLoading) return <LoadingScreen />;
