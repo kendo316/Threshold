@@ -2,14 +2,17 @@ import { useState, useEffect } from 'react';
 import { doc, getDoc, setDoc } from 'firebase/firestore';
 import { db } from '../firebase';
 
-function todayKey() {
-  return new Date().toISOString().slice(0, 10);
+export function localDateKey(date = new Date()) {
+  const y = date.getFullYear();
+  const m = String(date.getMonth() + 1).padStart(2, '0');
+  const d = String(date.getDate()).padStart(2, '0');
+  return `${y}-${m}-${d}`;
 }
 
 export function useDailyLog(uid) {
   const [logData, setLogData] = useState({ items: [], totalLoad: 0, dayContext: null, notes: '' });
   const [loading, setLoading] = useState(true);
-  const date = todayKey();
+  const date = localDateKey();
 
   useEffect(() => {
     if (!uid) return;
@@ -47,10 +50,17 @@ export function useDailyLog(uid) {
     await saveLog(updated);
   };
 
+  const removeItem = async (triggerId) => {
+    const items = logData.items.filter(i => i.triggerId !== triggerId);
+    const totalLoad = Math.min(100, items.reduce((s, i) => s + i.effectiveLoad, 0));
+    const updated = { ...logData, items, totalLoad };
+    await saveLog(updated);
+  };
+
   const setDayContext = async (ctx) => {
     const updated = { ...logData, dayContext: ctx };
     await saveLog(updated);
   };
 
-  return { logData, loading, addItem, setDayContext, saveLog };
+  return { logData, loading, addItem, removeItem, setDayContext, saveLog };
 }

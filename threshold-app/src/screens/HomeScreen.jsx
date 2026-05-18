@@ -1,12 +1,38 @@
+import { useState } from 'react';
 import { P } from '../data/palette';
 import { DAY_CONTEXTS, SYMPTOMS } from '../data/triggers';
 import { bucketColor, bucketBg, bucketAdvice } from '../data/bucketUtils';
 import BucketGauge from '../components/BucketGauge';
+import PastDayModal from '../components/PastDayModal';
+import { localDateKey } from '../hooks/useDailyLog';
 
-export default function HomeScreen({ logData, checkin, profile, onSetDayContext, setTab }) {
+function pastKey(daysAgo) {
+  const d = new Date();
+  d.setDate(d.getDate() - daysAgo);
+  return localDateKey(d);
+}
+
+function shortDayLabel(dateKey) {
+  const [y, m, d] = dateKey.split('-').map(Number);
+  const date = new Date(y, m - 1, d);
+  return date.toLocaleDateString('en-US', { weekday: 'short', month: 'short', day: 'numeric' });
+}
+
+export default function HomeScreen({ logData, checkin, profile, history, checkinHistory, onSetDayContext, onRemoveItem, onAppendItem, setTab }) {
   const { items = [], totalLoad = 0, dayContext } = logData;
   const thresholds = profile?.thresholds;
   const advice = bucketAdvice(totalLoad, dayContext);
+  const [removingId, setRemovingId] = useState(null);
+  const [pastDayModal, setPastDayModal] = useState(null);
+
+  const handleChipTap = (triggerId) => {
+    if (removingId === triggerId) {
+      onRemoveItem(triggerId);
+      setRemovingId(null);
+    } else {
+      setRemovingId(triggerId);
+    }
+  };
 
   return (
     <div>
@@ -65,23 +91,52 @@ export default function HomeScreen({ logData, checkin, profile, onSetDayContext,
       {/* Today's log */}
       {items.length > 0 && (
         <div style={{ padding: '0 20px 16px' }}>
-          <p style={{ fontSize: 11, color: P.textLight, letterSpacing: '0.1em', textTransform: 'uppercase', fontWeight: 600, marginBottom: 10 }}>
-            Today's Log
-          </p>
+          <div style={{ display: 'flex', justifyContent: 'space-between', alignItems: 'baseline', marginBottom: 8 }}>
+            <p style={{ fontSize: 11, color: P.textLight, letterSpacing: '0.1em', textTransform: 'uppercase', fontWeight: 600, margin: 0 }}>
+              Today's Log
+            </p>
+            {removingId ? (
+              <button
+                onClick={() => setRemovingId(null)}
+                style={{ background: 'none', border: 'none', fontSize: 11, color: P.textLight, cursor: 'pointer', padding: 0, fontFamily: "'DM Sans', sans-serif" }}
+              >
+                cancel
+              </button>
+            ) : (
+              <span style={{ fontSize: 11, color: P.textLight, fontFamily: "'DM Sans', sans-serif", fontStyle: 'italic' }}>
+                tap to remove
+              </span>
+            )}
+          </div>
           <div style={{ display: 'flex', flexWrap: 'wrap', gap: 7 }}>
-            {items.map(item => (
-              <div key={item.triggerId} style={{
-                padding: '7px 12px',
-                background: P.card, border: `1.5px solid ${P.border}`,
-                borderRadius: 20, display: 'flex', alignItems: 'center', gap: 5,
-                fontSize: 13, color: P.textMid, fontFamily: "'DM Sans', sans-serif",
-              }}>
-                {item.label}
-                <span style={{ fontSize: 10, color: bucketColor(item.effectiveLoad * 3), fontWeight: 700 }}>
-                  +{item.effectiveLoad}%
-                </span>
-              </div>
-            ))}
+            {items.map(item => {
+              const isRemoving = removingId === item.triggerId;
+              return (
+                <button
+                  key={item.triggerId}
+                  onClick={() => handleChipTap(item.triggerId)}
+                  style={{
+                    padding: '7px 12px',
+                    background: isRemoving ? P.orangeLight : P.card,
+                    border: `1.5px solid ${isRemoving ? P.orange : P.border}`,
+                    borderRadius: 20, display: 'flex', alignItems: 'center', gap: 5,
+                    fontSize: 13, color: isRemoving ? P.orange : P.textMid,
+                    fontFamily: "'DM Sans', sans-serif",
+                    cursor: 'pointer',
+                  }}
+                >
+                  {isRemoving ? '✕' : item.label}
+                  {!isRemoving && (
+                    <span style={{ fontSize: 10, color: bucketColor(item.effectiveLoad * 3), fontWeight: 700 }}>
+                      +{item.effectiveLoad}%
+                    </span>
+                  )}
+                  {isRemoving && (
+                    <span style={{ fontSize: 11, fontWeight: 600 }}> Remove {item.label}?</span>
+                  )}
+                </button>
+              );
+            })}
           </div>
         </div>
       )}
@@ -146,6 +201,75 @@ export default function HomeScreen({ logData, checkin, profile, onSetDayContext,
             Start by logging what you've eaten today,<br />or check in with how you're feeling.
           </p>
         </div>
+      )}
+
+      {/* 3-day strip */}
+      {([1, 2].some(n => history[pastKey(n)] || checkinHistory?.[pastKey(n)])) && (
+        <div style={{ padding: '4px 20px 20px' }}>
+          <p style={{ fontSize: 11, color: P.textLight, letterSpacing: '0.1em', textTransform: 'uppercase', fontWeight: 600, marginBottom: 10, fontFamily: "'DM Sans', sans-serif" }}>
+            Recent Days
+          </p>
+          <div style={{ display: 'flex', gap: 10 }}>
+            {[1, 2].map(daysAgo => {
+              const key = pastKey(daysAgo);
+              const dayLog = history[key];
+              const dayCheckin = checkinHistory?.[key];
+              const load = dayLog?.totalLoad ?? 0;
+              const itemCount = dayLog?.items?.length ?? 0;
+              const hasSymptoms = dayCheckin?.symptoms?.length > 0;
+              const hadReaction = hasSymptoms && !dayCheckin.symptoms.includes('fine');
+              const color = load === 0 ? P.textLight : bucketColor(load);
+
+              return (
+                <button
+                  key={key}
+                  onClick={() => setPastDayModal(key)}
+                  style={{
+                    flex: 1, padding: '12px 14px',
+                    background: P.card,
+                    border: `1.5px solid ${hadReaction ? '#E0A090' : P.border}`,
+                    borderRadius: 14, cursor: 'pointer',
+                    textAlign: 'left', display: 'flex', flexDirection: 'column', gap: 5,
+                  }}
+                >
+                  <span style={{ fontSize: 12, color: P.textLight, fontFamily: "'DM Sans', sans-serif", fontWeight: 500 }}>
+                    {shortDayLabel(key)}
+                  </span>
+                  <div style={{ display: 'flex', alignItems: 'baseline', gap: 5 }}>
+                    <span style={{ fontSize: 20, fontWeight: 700, color, fontFamily: "'Lora', serif" }}>
+                      {load}%
+                    </span>
+                    {itemCount > 0 && (
+                      <span style={{ fontSize: 11, color: P.textLight, fontFamily: "'DM Sans', sans-serif" }}>
+                        {itemCount} item{itemCount !== 1 ? 's' : ''}
+                      </span>
+                    )}
+                  </div>
+                  {hasSymptoms && (
+                    <span style={{ fontSize: 11, color: hadReaction ? P.orange : P.green, fontFamily: "'DM Sans', sans-serif" }}>
+                      {hadReaction ? '⚠ Symptoms' : '✓ Felt fine'}
+                    </span>
+                  )}
+                  {!dayLog && (
+                    <span style={{ fontSize: 11, color: P.textLight, fontFamily: "'DM Sans', sans-serif", fontStyle: 'italic' }}>
+                      Nothing logged
+                    </span>
+                  )}
+                </button>
+              );
+            })}
+          </div>
+        </div>
+      )}
+
+      {pastDayModal && (
+        <PastDayModal
+          dateKey={pastDayModal}
+          logData={history[pastDayModal]}
+          checkinData={checkinHistory?.[pastDayModal]}
+          onAppendItem={onAppendItem}
+          onClose={() => setPastDayModal(null)}
+        />
       )}
     </div>
   );

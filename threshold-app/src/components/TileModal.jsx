@@ -2,8 +2,14 @@ import { useState } from 'react';
 import { P } from '../data/palette';
 import { bucketBg, bucketColor } from '../data/bucketUtils';
 
-export default function TileModal({ trigger, onConfirm, onClose }) {
-  const [amount, setAmount] = useState('moderate');
+const AMOUNT_DESCRIPTORS = {
+  small:    'a few bites or sips',
+  moderate: 'a normal serving',
+  large:    'a large portion or several servings',
+};
+
+export default function TileModal({ trigger, isLogged, existingItem, onConfirm, onRemove, onClose, zIndex = 200 }) {
+  const [amount, setAmount] = useState(existingItem?.amount ?? 'moderate');
   const multipliers = { small: 0.5, moderate: 1, large: 1.5 };
   const effectiveLoad = Math.round(trigger.load * multipliers[amount]);
 
@@ -12,7 +18,7 @@ export default function TileModal({ trigger, onConfirm, onClose }) {
       style={{
         position: 'fixed', inset: 0,
         background: 'rgba(30,14,6,0.55)',
-        zIndex: 200,
+        zIndex,
         display: 'flex', alignItems: 'flex-end', justifyContent: 'center',
       }}
       onClick={onClose}
@@ -45,17 +51,20 @@ export default function TileModal({ trigger, onConfirm, onClose }) {
               key={a}
               onClick={() => setAmount(a)}
               style={{
-                flex: 1, padding: '13px 6px',
+                flex: 1, padding: '13px 6px 11px',
                 border: `2px solid ${amount === a ? P.amber : P.border}`,
                 borderRadius: 13,
                 background: amount === a ? P.amberLight : 'white',
                 color: amount === a ? P.brown : P.textMid,
-                fontSize: 13, fontFamily: "'DM Sans', sans-serif",
-                fontWeight: amount === a ? 600 : 400,
-                textTransform: 'capitalize', cursor: 'pointer',
+                fontFamily: "'DM Sans', sans-serif",
+                cursor: 'pointer',
+                display: 'flex', flexDirection: 'column', alignItems: 'center', gap: 3,
               }}
             >
-              {a}
+              <span style={{ fontSize: 13, fontWeight: amount === a ? 600 : 400, textTransform: 'capitalize' }}>{a}</span>
+              <span style={{ fontSize: 10, color: amount === a ? P.brownLight : P.textLight, lineHeight: 1.3, textAlign: 'center' }}>
+                {AMOUNT_DESCRIPTORS[a]}
+              </span>
             </button>
           ))}
         </div>
@@ -82,10 +91,26 @@ export default function TileModal({ trigger, onConfirm, onClose }) {
             border: 'none', borderRadius: 14,
             fontSize: 16, fontFamily: "'DM Sans', sans-serif",
             fontWeight: 600, cursor: 'pointer',
+            marginBottom: isLogged ? 10 : 0,
           }}
         >
-          Add to Today
+          {isLogged ? 'Update Amount' : 'Add to Today'}
         </button>
+
+        {isLogged && (
+          <button
+            onClick={() => onRemove(trigger)}
+            style={{
+              width: '100%', padding: '13px',
+              background: 'transparent', color: P.textLight,
+              border: `1.5px solid ${P.border}`, borderRadius: 14,
+              fontSize: 14, fontFamily: "'DM Sans', sans-serif",
+              fontWeight: 500, cursor: 'pointer',
+            }}
+          >
+            Remove from today's log
+          </button>
+        )}
       </div>
     </div>
   );

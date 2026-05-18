@@ -2,7 +2,7 @@ import { useState } from 'react';
 import { P } from '../data/palette';
 import { useAuth } from '../contexts/AuthContext';
 
-export default function ProfileScreen({ profile, onSave }) {
+export default function ProfileScreen({ profile, onSave, onLabResults }) {
   const { logOut, currentUser } = useAuth();
   const [name, setName] = useState(profile?.name ?? '');
   const [igeNumber, setIgeNumber] = useState(profile?.igeNumber ?? '');
@@ -85,6 +85,24 @@ export default function ProfileScreen({ profile, onSave }) {
         }}
       >
         {saved ? '✓ Saved' : 'Save Profile'}
+      </button>
+
+      <button
+        onClick={onLabResults}
+        style={{
+          width: '100%', padding: '14px',
+          background: P.card, color: P.textMid,
+          border: `1.5px solid ${P.border}`, borderRadius: 14,
+          fontSize: 15, fontFamily: "'DM Sans', sans-serif",
+          fontWeight: 500, cursor: 'pointer',
+          marginBottom: 10,
+          display: 'flex', justifyContent: 'space-between', alignItems: 'center',
+        }}
+      >
+        <span>🧪 Lab Results</span>
+        <span style={{ fontSize: 12, color: P.textLight }}>
+          {profile?.labResults?.noResults ? 'Not available' : profile?.labResults?.testDate ? `Tested ${profile.labResults.testDate}` : 'Not entered →'}
+        </span>
       </button>
 
       <button

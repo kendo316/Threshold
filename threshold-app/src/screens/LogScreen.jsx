@@ -3,28 +3,60 @@ import { P } from '../data/palette';
 import { TRIGGERS, LOG_CATEGORIES } from '../data/triggers';
 import TileModal from '../components/TileModal';
 
-export default function LogScreen({ onAdd, loggedItems, onBack }) {
+export default function LogScreen({ onAdd, onRemove, loggedItems, onBack }) {
   const [modal, setModal] = useState(null);
+
+  const handleTileTap = (trigger) => {
+    setModal(trigger);
+  };
 
   const handleConfirm = (trigger, amount) => {
     onAdd(trigger, amount);
     setModal(null);
   };
 
+  const handleRemoveFromModal = (trigger) => {
+    onRemove(trigger.id);
+    setModal(null);
+  };
+
   return (
     <div>
-      {modal && <TileModal trigger={modal} onConfirm={handleConfirm} onClose={() => setModal(null)} />}
+      {modal && (
+        <TileModal
+          trigger={modal}
+          isLogged={loggedItems.some(l => l.triggerId === modal.id)}
+          existingItem={loggedItems.find(l => l.triggerId === modal.id)}
+          onConfirm={handleConfirm}
+          onRemove={handleRemoveFromModal}
+          onClose={() => setModal(null)}
+        />
+      )}
 
-      <div style={{ padding: '16px 20px 0', display: 'flex', alignItems: 'center', gap: 12, marginBottom: 4 }}>
+      <div style={{ padding: '16px 20px 0', display: 'flex', alignItems: 'center', justifyContent: 'space-between', marginBottom: 4 }}>
+        <div style={{ display: 'flex', alignItems: 'center', gap: 12 }}>
+          <button
+            onClick={onBack}
+            style={{ background: 'none', border: 'none', fontSize: 24, cursor: 'pointer', color: P.textMid, lineHeight: 1, padding: 0 }}
+          >
+            ←
+          </button>
+          <h2 style={{ margin: 0, fontFamily: "'Lora', serif", color: P.textDark, fontSize: 22 }}>
+            What did you have?
+          </h2>
+        </div>
         <button
           onClick={onBack}
-          style={{ background: 'none', border: 'none', fontSize: 24, cursor: 'pointer', color: P.textMid, lineHeight: 1, padding: 0 }}
+          style={{
+            background: P.brown, color: 'white',
+            border: 'none', borderRadius: 20,
+            padding: '8px 16px', fontSize: 13,
+            fontFamily: "'DM Sans', sans-serif",
+            fontWeight: 600, cursor: 'pointer',
+          }}
         >
-          ←
+          Done for now
         </button>
-        <h2 style={{ margin: 0, fontFamily: "'Lora', serif", color: P.textDark, fontSize: 22 }}>
-          What did you have?
-        </h2>
       </div>
 
       <div style={{ padding: '12px 20px 100px' }}>
@@ -49,7 +81,7 @@ export default function LogScreen({ onAdd, loggedItems, onBack }) {
                   return (
                     <button
                       key={t.id}
-                      onClick={() => setModal(t)}
+                      onClick={() => handleTileTap(t)}
                       style={{
                         padding: '16px 8px 12px',
                         background: isLogged ? P.amberLight : P.card,

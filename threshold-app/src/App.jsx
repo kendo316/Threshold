@@ -3,6 +3,7 @@ import { AuthProvider, useAuth } from './contexts/AuthContext';
 import { useProfile } from './hooks/useProfile';
 import { useDailyLog } from './hooks/useDailyLog';
 import { useCheckin } from './hooks/useCheckin';
+import { useLogHistory } from './hooks/useLogHistory';
 import { P } from './data/palette';
 
 import AuthScreen from './screens/AuthScreen';
@@ -12,6 +13,7 @@ import LogScreen from './screens/LogScreen';
 import CheckInScreen from './screens/CheckInScreen';
 import HistoryScreen from './screens/HistoryScreen';
 import ProfileScreen from './screens/ProfileScreen';
+import LabResultsScreen from './screens/LabResultsScreen';
 
 const NAV_TABS = [
   { id: 'home',    label: 'Today',    emoji: '🪣' },
@@ -23,12 +25,14 @@ const NAV_TABS = [
 function AppShell() {
   const { currentUser } = useAuth();
   const { profile, loading: profileLoading, saveProfile } = useProfile(currentUser?.uid);
-  const { logData, loading: logLoading, addItem, setDayContext } = useDailyLog(currentUser?.uid);
+  const { logData, loading: logLoading, addItem, removeItem, setDayContext } = useDailyLog(currentUser?.uid);
   const { checkin, loading: checkinLoading, saveCheckin } = useCheckin(currentUser?.uid);
+  const { history, checkinHistory, loading: historyLoading, dateKeys, appendItemToDate } = useLogHistory(currentUser?.uid, 30);
   const [tab, setTab] = useState('home');
 
   if (!currentUser) return <AuthScreen />;
   if (profileLoading || logLoading || checkinLoading) return <LoadingScreen />;
+
   if (!profile?.onboarded) {
     return <OnboardingScreen onComplete={saveProfile} />;
   }
@@ -108,13 +112,18 @@ function AppShell() {
             logData={logData}
             checkin={checkin}
             profile={profile}
+            history={history}
+            checkinHistory={checkinHistory}
             onSetDayContext={setDayContext}
+            onRemoveItem={removeItem}
+            onAppendItem={appendItemToDate}
             setTab={setTab}
           />
         )}
         {tab === 'log' && (
           <LogScreen
             onAdd={handleAddItem}
+            onRemove={removeItem}
             loggedItems={logData.items}
             onBack={() => setTab('home')}
           />
@@ -126,11 +135,29 @@ function AppShell() {
             existingCheckin={checkin}
           />
         )}
-        {tab === 'history' && <HistoryScreen />}
+        {tab === 'history' && (
+          <HistoryScreen
+            history={history}
+            checkinHistory={checkinHistory}
+            dateKeys={dateKeys}
+            onAppendItem={appendItemToDate}
+            profile={profile}
+          />
+        )}
         {tab === 'profile' && (
           <ProfileScreen
             profile={profile}
             onSave={saveProfile}
+            onLabResults={() => setTab('lab')}
+          />
+        )}
+        {tab === 'lab' && (
+          <LabResultsScreen
+            labResults={profile?.labResults}
+            onSave={async (data) => {
+              await saveProfile({ ...profile, labResults: data });
+            }}
+            onBack={() => setTab('profile')}
           />
         )}
       </div>

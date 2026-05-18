@@ -1,15 +1,12 @@
 import { useState, useEffect } from 'react';
 import { doc, getDoc, setDoc } from 'firebase/firestore';
 import { db } from '../firebase';
-
-function todayKey() {
-  return new Date().toISOString().slice(0, 10);
-}
+import { localDateKey } from './useDailyLog';
 
 export function useCheckin(uid) {
   const [checkin, setCheckin] = useState(null);
   const [loading, setLoading] = useState(true);
-  const date = todayKey();
+  const date = localDateKey();
 
   useEffect(() => {
     if (!uid) return;
