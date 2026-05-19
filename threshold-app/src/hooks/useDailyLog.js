@@ -9,6 +9,13 @@ export function localDateKey(date = new Date()) {
   return `${y}-${m}-${d}`;
 }
 
+export function nextDayKey(dateKey) {
+  const [y, m, d] = dateKey.split('-').map(Number);
+  const date = new Date(y, m - 1, d);
+  date.setDate(date.getDate() + 1);
+  return localDateKey(date);
+}
+
 export function useDailyLog(uid) {
   const [logData, setLogData] = useState({ items: [], totalLoad: 0, dayContext: null, notes: '' });
   const [loading, setLoading] = useState(true);

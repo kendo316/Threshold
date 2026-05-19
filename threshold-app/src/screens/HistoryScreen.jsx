@@ -3,6 +3,8 @@ import { P } from '../data/palette';
 import { SYMPTOMS } from '../data/triggers';
 import { bucketColor } from '../data/bucketUtils';
 import PastDayModal from '../components/PastDayModal';
+import ScrollFade from '../components/ScrollFade';
+import { nextDayKey, localDateKey } from '../hooks/useDailyLog';
 
 function formatDateLabel(dateKey) {
   const [y, m, d] = dateKey.split('-').map(Number);
@@ -10,27 +12,36 @@ function formatDateLabel(dateKey) {
   return date.toLocaleDateString('en-US', { weekday: 'short', month: 'short', day: 'numeric' });
 }
 
-function LoadBar({ pct, thresholds }) {
+function LoadBar({ pct }) {
   const color = pct >= 80 ? P.red : pct >= 55 ? P.orange : pct >= 30 ? P.amber : P.green;
   return (
-    <div style={{ height: 5, background: P.borderLight, borderRadius: 4, overflow: 'hidden', flex: 1 }}>
-      <div style={{ height: '100%', width: `${Math.min(100, pct)}%`, background: color, borderRadius: 4, transition: 'width 0.3s' }} />
+    <div style={{ height: 5, background: P.borderLight, borderRadius: 4, overflow: 'hidden' }}>
+      <div style={{ height: '100%', width: `${Math.min(100, pct)}%`, background: color, borderRadius: 4 }} />
     </div>
   );
 }
 
-export default function HistoryScreen({ history, checkinHistory, dateKeys, onAppendItem, profile }) {
+export default function HistoryScreen({ history, checkinHistory, dateKeys, onAppendItem, todayCheckin }) {
   const [openDay, setOpenDay] = useState(null);
+  const today = localDateKey();
 
-  const activeDays = dateKeys.filter(k => history[k] || checkinHistory[k]);
+  // Eating on day D → reactions appear morning of D+1.
+  // If D+1 is today, use the live todayCheckin prop (not yet in checkinHistory).
+  const getFeelCheckin = (dateKey) => {
+    const next = nextDayKey(dateKey);
+    return next === today ? todayCheckin : checkinHistory?.[next];
+  };
+
+  const activeDays = dateKeys.filter(k => history[k]);
 
   return (
     <div style={{ padding: '20px 20px 100px', fontFamily: "'DM Sans', sans-serif" }}>
+      <ScrollFade />
       <h2 style={{ margin: '0 0 4px', fontFamily: "'Lora', serif", color: P.textDark, fontSize: 22 }}>
         History
       </h2>
       <p style={{ margin: '0 0 20px', fontSize: 13, color: P.textLight }}>
-        Past 30 days — tap any day to see details
+        What you ate, and how you felt the next day
       </p>
 
       {activeDays.length === 0 && (
@@ -45,14 +56,15 @@ export default function HistoryScreen({ history, checkinHistory, dateKeys, onApp
       {activeDays.length > 0 && (
         <div style={{ display: 'flex', flexDirection: 'column', gap: 10 }}>
           {activeDays.map(dateKey => {
-            const log = history[dateKey];
-            const checkin = checkinHistory[dateKey];
-            const load = log?.totalLoad ?? 0;
+            const log      = history[dateKey];
+            const feel     = getFeelCheckin(dateKey);
+            const load     = log?.totalLoad ?? 0;
             const itemCount = log?.items?.length ?? 0;
-            const symptoms = checkin?.symptoms ?? [];
-            const hadReaction = symptoms.length > 0 && !symptoms.includes('fine');
-            const feltFine = symptoms.includes('fine');
-            const color = load === 0 ? P.textLight : bucketColor(load);
+            const symptoms = feel?.symptoms ?? [];
+            const hasCheckin  = symptoms.length > 0;
+            const hadReaction = hasCheckin && !symptoms.includes('fine');
+            const feltFine    = symptoms.includes('fine');
+            const connectorColor = hadReaction ? P.orange : feltFine ? P.green : P.borderLight;
 
             return (
               <button
@@ -66,61 +78,60 @@ export default function HistoryScreen({ history, checkinHistory, dateKeys, onApp
                   textAlign: 'left',
                 }}
               >
-                <div style={{ display: 'flex', justifyContent: 'space-between', alignItems: 'flex-start', marginBottom: 8 }}>
+                {/* Eat row */}
+                <div style={{ display: 'flex', justifyContent: 'space-between', alignItems: 'flex-start', marginBottom: 6 }}>
                   <div>
-                    <span style={{ fontSize: 14, fontWeight: 600, color: P.textDark, display: 'block' }}>
+                    <span style={{ fontSize: 14, fontWeight: 600, color: P.textDark, display: 'block', fontFamily: "'DM Sans', sans-serif" }}>
                       {formatDateLabel(dateKey)}
                     </span>
-                    {itemCount > 0 && (
-                      <span style={{ fontSize: 12, color: P.textLight }}>
-                        {itemCount} item{itemCount !== 1 ? 's' : ''} logged
-                      </span>
-                    )}
-                    {!log && (
-                      <span style={{ fontSize: 12, color: P.textLight, fontStyle: 'italic' }}>
-                        No intake logged
-                      </span>
-                    )}
-                  </div>
-                  <div style={{ textAlign: 'right' }}>
-                    <span style={{ fontSize: 18, fontWeight: 700, color, fontFamily: "'Lora', serif", display: 'block' }}>
-                      {load}%
+                    <span style={{ fontSize: 12, color: P.textLight, fontFamily: "'DM Sans', sans-serif" }}>
+                      {itemCount} item{itemCount !== 1 ? 's' : ''} logged
                     </span>
-                    {hadReaction && (
-                      <span style={{ fontSize: 11, color: P.orange }}>⚠ symptoms</span>
-                    )}
-                    {feltFine && (
-                      <span style={{ fontSize: 11, color: P.green }}>✓ felt fine</span>
-                    )}
                   </div>
+                  <span style={{ fontSize: 18, fontWeight: 700, color: bucketColor(load), fontFamily: "'Lora', serif" }}>
+                    {load}%
+                  </span>
                 </div>
+                <LoadBar pct={load} />
 
-                {log && (
-                  <div style={{ display: 'flex', alignItems: 'center', gap: 8 }}>
-                    <LoadBar pct={load} />
-                  </div>
-                )}
-
-                {symptoms.length > 0 && (
-                  <div style={{ display: 'flex', flexWrap: 'wrap', gap: 5, marginTop: 8 }}>
-                    {symptoms.slice(0, 3).map(id => {
-                      const s = SYMPTOMS.find(x => x.id === id);
-                      return s ? (
-                        <span key={id} style={{
-                          fontSize: 11, padding: '3px 8px',
-                          background: id === 'fine' ? P.greenLight : P.orangeLight,
-                          color: id === 'fine' ? P.green : P.orange,
-                          borderRadius: 20,
-                        }}>
-                          {s.emoji} {s.label}
-                        </span>
-                      ) : null;
-                    })}
-                    {symptoms.length > 3 && (
-                      <span style={{ fontSize: 11, color: P.textLight }}>+{symptoms.length - 3} more</span>
-                    )}
-                  </div>
-                )}
+                {/* Feel connector */}
+                <div style={{
+                  borderLeft: `3px solid ${connectorColor}`,
+                  marginLeft: 6, marginTop: 10, paddingLeft: 12,
+                }}>
+                  <span style={{
+                    fontSize: 11, color: P.textLight,
+                    fontFamily: "'DM Sans', sans-serif",
+                    display: 'block', marginBottom: hasCheckin ? 6 : 0,
+                  }}>
+                    ↓ Next morning
+                  </span>
+                  {hasCheckin ? (
+                    <div style={{ display: 'flex', flexWrap: 'wrap', gap: 5 }}>
+                      {symptoms.map(id => {
+                        const s = SYMPTOMS.find(x => x.id === id);
+                        return s ? (
+                          <span key={id} style={{
+                            fontSize: 11, padding: '3px 9px',
+                            background: id === 'fine' ? P.greenLight : P.orangeLight,
+                            color: id === 'fine' ? P.green : P.orange,
+                            borderRadius: 20,
+                            fontFamily: "'DM Sans', sans-serif",
+                          }}>
+                            {s.emoji} {s.label}
+                          </span>
+                        ) : null;
+                      })}
+                    </div>
+                  ) : (
+                    <span style={{
+                      fontSize: 11, color: P.textLight, fontStyle: 'italic',
+                      fontFamily: "'DM Sans', sans-serif",
+                    }}>
+                      No morning check-in logged
+                    </span>
+                  )}
+                </div>
               </button>
             );
           })}
@@ -131,7 +142,7 @@ export default function HistoryScreen({ history, checkinHistory, dateKeys, onApp
         <PastDayModal
           dateKey={openDay}
           logData={history[openDay]}
-          checkinData={checkinHistory[openDay]}
+          checkinData={getFeelCheckin(openDay)}
           onAppendItem={onAppendItem}
           onClose={() => setOpenDay(null)}
         />

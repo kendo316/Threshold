@@ -14,6 +14,7 @@ import CheckInScreen from './screens/CheckInScreen';
 import HistoryScreen from './screens/HistoryScreen';
 import ProfileScreen from './screens/ProfileScreen';
 import LabResultsScreen from './screens/LabResultsScreen';
+import DateStrip from './components/DateStrip';
 
 const NAV_TABS = [
   { id: 'home',    label: 'Today',    emoji: '🪣' },
@@ -70,31 +71,23 @@ function AppShell() {
 
       {/* Header */}
       <div style={{
-        padding: '48px 20px 18px',
+        padding: '48px 20px 14px',
         background: P.card,
         borderBottom: `1px solid ${P.border}`,
-        display: 'flex', justifyContent: 'space-between', alignItems: 'flex-end',
       }}>
-        <div>
-          <h1 style={{
-            margin: 0, fontSize: 26,
-            fontFamily: "'Lora', serif",
-            color: P.textDark, letterSpacing: '-0.02em',
-          }}>
-            Threshold
-          </h1>
-          <p style={{ margin: '2px 0 0', fontSize: 11, color: P.textLight, letterSpacing: '0.09em', textTransform: 'uppercase', fontWeight: 600 }}>
-            Alpha-Gal Load Tracker
-          </p>
-        </div>
-        <div style={{ display: 'flex', alignItems: 'center', gap: 10 }}>
-          <span style={{
-            fontSize: 12, color: P.textLight,
-            background: P.bg, border: `1px solid ${P.border}`,
-            borderRadius: 20, padding: '4px 12px', fontWeight: 500,
-          }}>
-            {new Date().toLocaleDateString('en-US', { weekday: 'short', month: 'short', day: 'numeric' })}
-          </span>
+        <div style={{ display: 'flex', justifyContent: 'space-between', alignItems: 'flex-end', marginBottom: 10 }}>
+          <div>
+            <h1 style={{
+              margin: 0, fontSize: 26,
+              fontFamily: "'Lora', serif",
+              color: P.textDark, letterSpacing: '-0.02em',
+            }}>
+              Threshold
+            </h1>
+            <p style={{ margin: '2px 0 0', fontSize: 11, color: P.textLight, letterSpacing: '0.09em', textTransform: 'uppercase', fontWeight: 600 }}>
+              Alpha-Gal Load Tracker
+            </p>
+          </div>
           <button
             onClick={() => setTab('profile')}
             style={{
@@ -107,6 +100,12 @@ function AppShell() {
             {profile?.name ?? 'Me'}
           </button>
         </div>
+        <DateStrip
+          history={history}
+          checkinHistory={checkinHistory}
+          todayCheckin={checkin}
+          appendItemToDate={appendItemToDate}
+        />
       </div>
 
       {/* Screens */}
@@ -116,11 +115,8 @@ function AppShell() {
             logData={logData}
             checkin={checkin}
             profile={profile}
-            history={history}
-            checkinHistory={checkinHistory}
             onSetDayContext={setDayContext}
             onRemoveItem={removeItem}
-            onAppendItem={appendItemToDate}
             setTab={setTab}
           />
         )}
@@ -145,7 +141,7 @@ function AppShell() {
             checkinHistory={checkinHistory}
             dateKeys={dateKeys}
             onAppendItem={appendItemToDate}
-            profile={profile}
+            todayCheckin={checkin}
           />
         )}
         {tab === 'profile' && (

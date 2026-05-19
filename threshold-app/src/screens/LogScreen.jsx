@@ -2,6 +2,7 @@ import { useState } from 'react';
 import { P } from '../data/palette';
 import { TRIGGERS, LOG_CATEGORIES } from '../data/triggers';
 import TileModal from '../components/TileModal';
+import ScrollFade from '../components/ScrollFade';
 
 export default function LogScreen({ onAdd, onRemove, loggedItems, onBack }) {
   const [modal, setModal] = useState(null);
@@ -59,6 +60,7 @@ export default function LogScreen({ onAdd, onRemove, loggedItems, onBack }) {
         </button>
       </div>
 
+      <ScrollFade />
       <div style={{ padding: '12px 20px 100px' }}>
         {LOG_CATEGORIES.map(cat => {
           const items = TRIGGERS.filter(t => t.cat === cat.key);
