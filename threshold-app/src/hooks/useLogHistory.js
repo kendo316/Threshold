@@ -2,6 +2,7 @@ import { useState, useEffect, useCallback } from 'react';
 import { doc, getDoc, setDoc, collection, getDocs, query, where, orderBy } from 'firebase/firestore';
 import { db } from '../firebase';
 import { localDateKey } from './useDailyLog';
+import { computeEffectiveLoad } from '../data/triggers';
 
 function pastDateKeys(count) {
   const keys = [];
@@ -45,9 +46,9 @@ export function useLogHistory(uid, days = 30) {
     fetchAll();
   }, [uid]);
 
-  const appendItemToDate = useCallback(async (dateKey, trigger, amount) => {
-    const multipliers = { small: 0.5, moderate: 1, large: 1.5 };
-    const effectiveLoad = Math.round(trigger.load * multipliers[amount]);
+  const appendItemToDate = useCallback(async (dateKey, trigger, amount, extra = {}) => {
+    const { effectiveLoad: overrideLoad, ...itemFields } = extra;
+    const effectiveLoad = overrideLoad ?? computeEffectiveLoad(trigger, amount);
     const newItem = {
       triggerId: trigger.id,
       label: trigger.label,
@@ -55,6 +56,7 @@ export function useLogHistory(uid, days = 30) {
       baseLoad: trigger.load,
       amount,
       effectiveLoad,
+      ...itemFields,
       loggedAt: new Date().toISOString(),
     };
 

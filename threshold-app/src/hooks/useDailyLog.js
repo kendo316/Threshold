@@ -1,6 +1,7 @@
 import { useState, useEffect } from 'react';
 import { doc, getDoc, setDoc } from 'firebase/firestore';
 import { db } from '../firebase';
+import { computeEffectiveLoad } from '../data/triggers';
 
 export function localDateKey(date = new Date()) {
   const y = date.getFullYear();
@@ -36,9 +37,9 @@ export function useDailyLog(uid) {
     setLogData(updated);
   };
 
-  const addItem = async (trigger, amount) => {
-    const multipliers = { small: 0.5, moderate: 1, large: 1.5 };
-    const effectiveLoad = Math.round(trigger.load * multipliers[amount]);
+  const addItem = async (trigger, amount, extra = {}) => {
+    const { effectiveLoad: overrideLoad, ...itemFields } = extra;
+    const effectiveLoad = overrideLoad ?? computeEffectiveLoad(trigger, amount);
 
     const newItem = {
       triggerId:     trigger.id,
@@ -47,6 +48,7 @@ export function useDailyLog(uid) {
       baseLoad:      trigger.load,
       amount,
       effectiveLoad,
+      ...itemFields,
       loggedAt:      new Date().toISOString(),
     };
 
@@ -69,5 +71,10 @@ export function useDailyLog(uid) {
     await saveLog(updated);
   };
 
-  return { logData, loading, addItem, removeItem, setDayContext, saveLog };
+  const setAcidBlockerToday = async (value) => {
+    const updated = { ...logData, acidBlockerToday: value };
+    await saveLog(updated);
+  };
+
+  return { logData, loading, addItem, removeItem, setDayContext, setAcidBlockerToday, saveLog };
 }

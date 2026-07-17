@@ -4,11 +4,12 @@ import { DAY_CONTEXTS, SYMPTOMS } from '../data/triggers';
 import { bucketColor, bucketAdvice } from '../data/bucketUtils';
 import BucketGauge from '../components/BucketGauge';
 
-export default function HomeScreen({ logData, checkin, profile, onSetDayContext, onRemoveItem, setTab }) {
+export default function HomeScreen({ logData, checkin, profile, onSetDayContext, onRemoveItem, onSetAcidBlockerToday, setTab }) {
   const { items = [], totalLoad = 0, dayContext } = logData;
   const thresholds = profile?.thresholds;
   const advice = bucketAdvice(totalLoad, dayContext);
   const [removingId, setRemovingId] = useState(null);
+  const acidBlockerToday = logData.acidBlockerToday ?? profile?.acidBlockerDefault ?? false;
 
   const handleChipTap = (triggerId) => {
     if (removingId === triggerId) {
@@ -51,6 +52,25 @@ export default function HomeScreen({ logData, checkin, profile, onSetDayContext,
             </button>
           ))}
         </div>
+      </div>
+
+      {/* Acid blocker toggle */}
+      <div style={{ padding: '0 20px 16px', display: 'flex', justifyContent: 'center' }}>
+        <button
+          onClick={() => onSetAcidBlockerToday(!acidBlockerToday)}
+          style={{
+            padding: '7px 13px',
+            background: acidBlockerToday ? P.amberLight : P.card,
+            border: `1.5px solid ${acidBlockerToday ? P.amber : P.border}`,
+            borderRadius: 20, cursor: 'pointer',
+            fontSize: 13, color: acidBlockerToday ? P.brown : P.textMid,
+            fontFamily: "'DM Sans', sans-serif",
+            fontWeight: acidBlockerToday ? 600 : 400,
+            display: 'flex', alignItems: 'center', gap: 5,
+          }}
+        >
+          💊 {acidBlockerToday ? 'Took acid blocker today' : 'No acid blocker today'}
+        </button>
       </div>
 
       {/* Advice banner */}

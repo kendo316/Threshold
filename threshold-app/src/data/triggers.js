@@ -25,7 +25,7 @@ export const TRIGGERS = [
 
   // Co-factors (these lower your ceiling — same food hits harder)
   { id: 'alcohol',  label: 'Alcohol',       emoji: '🍷', cat: 'cofactor', load: 15, note: 'Lowers your reaction threshold directly. A drink before eating mammals significantly increases risk.' },
-  { id: 'nsaids',   label: 'Ibuprofen/NSAIDs', emoji: '💊', cat: 'cofactor', load: 20, note: 'Advil, Motrin, Aleve, aspirin, naproxen — one of the most significant AG cofactors. Many people don\'t realize this.' },
+  { id: 'nsaids',   label: 'Ibuprofen/NSAIDs', emoji: '💊', cat: 'cofactor', load: 20, note: 'Advil, Motrin, Aleve, aspirin, naproxen — one of the most significant AG cofactors. Many people don\'t realize this.', nsaidModifier: true },
   { id: 'heat',     label: 'Heat/Hot',      emoji: '🌡️', cat: 'cofactor', load: 13, note: 'Hot shower, sauna, sun exposure, fever. Core body temperature rise amplifies reactions.' },
   { id: 'exercise', label: 'Exercise',      emoji: '🏃', cat: 'cofactor', load: 10, note: 'Vigorous activity, especially within hours of eating. Even a brisk walk can matter.' },
   { id: 'illness',  label: 'Sick/Stress',   emoji: '🤒', cat: 'cofactor', load: 22, note: 'Active illness, poor sleep, and high emotional stress all lower your tolerance ceiling.' },
@@ -33,7 +33,7 @@ export const TRIGGERS = [
 
   // OTC Medicines
   { id: 'gelcaps',  label: 'Gel Capsules',  emoji: '💉', cat: 'otc',      load: 10, note: 'Many OTC and prescription capsules use porcine or bovine gelatin shells. Ask your pharmacist.' },
-  { id: 'aspirin',  label: 'Aspirin',       emoji: '🔴', cat: 'otc',      load: 15, note: 'A significant AG cofactor like ibuprofen. Includes baby aspirin taken daily.' },
+  { id: 'aspirin',  label: 'Aspirin',       emoji: '🔴', cat: 'otc',      load: 15, note: 'A significant AG cofactor like ibuprofen. Includes baby aspirin taken daily.', nsaidModifier: true },
   { id: 'antacid',  label: 'Some Antacids', emoji: '🫧', cat: 'otc',      load: 5,  note: 'A few antacid brands use gelatin coatings or bovine-derived calcium. Check inactive ingredients.' },
 ];
 
@@ -53,7 +53,105 @@ export const DAY_CONTEXTS = [
   { id: 'social', label: 'Social Plans', emoji: '🥂', tip: 'Plan ahead so you can enjoy yourself.' },
 ];
 
-export const AMOUNT_MULTIPLIERS = { small: 0.5, moderate: 1, large: 1.5 };
+export const TICK_REGIONS = [
+  { key: 'northeast', label: 'Northeast' },
+  { key: 'southeast', label: 'Southeast' },
+  { key: 'midwest',   label: 'Midwest' },
+  { key: 'southwest', label: 'Southwest' },
+  { key: 'west',      label: 'West' },
+  { key: 'other',     label: 'Other' },
+];
+
+export const TICK_ATTACHMENT_DURATIONS = [
+  { key: 'crawling', label: 'Crawling / under 4 hrs' },
+  { key: 'embedded', label: 'Embedded about a day' },
+  { key: 'engorged', label: 'Engorged, over 24 hrs' },
+];
+
+export const TICK_SIZES = [
+  { key: 'seed',  label: 'Speck / seed tick' },
+  { key: 'nymph', label: 'Small / nymph' },
+  { key: 'adult', label: 'Large / adult' },
+];
+
+// Amount-selector language and multipliers, by trigger id.
+// Food defaults to a 3-point small/moderate/large scale. Cofactors that are
+// scientifically binary (heat, exercise) use a 2-point scale instead of
+// forcing a fake "moderate" middle option.
+const DEFAULT_AMOUNT_OPTIONS = [
+  { key: 'small',    label: 'Small',    descriptor: 'a few bites or sips',                mult: 0.5 },
+  { key: 'moderate', label: 'Moderate', descriptor: 'a normal serving',                    mult: 1 },
+  { key: 'large',    label: 'Large',    descriptor: 'a large portion or several servings', mult: 1.5 },
+];
+
+export const AMOUNT_OPTIONS_BY_TRIGGER = {
+  illness: [ // Sick/Stress
+    { key: 'small',    label: 'Mild',     descriptor: 'manageable, low-grade',        mult: 0.5 },
+    { key: 'moderate', label: 'Moderate', descriptor: 'noticeably unwell or stressed', mult: 1 },
+    { key: 'large',    label: 'Severe',   descriptor: 'acute illness or high stress',  mult: 1.5 },
+  ],
+  heat: [
+    { key: 'small', label: 'Brief exposure',    descriptor: 'a few minutes',      mult: 0.6 },
+    { key: 'large', label: 'Extended exposure', descriptor: 'prolonged exposure', mult: 1.4 },
+  ],
+  exercise: [
+    { key: 'small', label: 'Light activity',  descriptor: 'a walk or easy movement',    mult: 0.6 },
+    { key: 'large', label: 'Intense workout', descriptor: 'vigorous or prolonged exertion', mult: 1.4 },
+  ],
+  alcohol: [
+    { key: 'small',    label: 'One drink',       descriptor: '', mult: 0.5 },
+    { key: 'moderate', label: 'A few drinks',    descriptor: '', mult: 1 },
+    { key: 'large',    label: 'Several drinks',  descriptor: '', mult: 1.5 },
+  ],
+};
+
+export function getAmountOptions(triggerId) {
+  return AMOUNT_OPTIONS_BY_TRIGGER[triggerId] ?? DEFAULT_AMOUNT_OPTIONS;
+}
+
+export function computeEffectiveLoad(trigger, amountKey) {
+  const options = getAmountOptions(trigger.id);
+  const mult = options.find(o => o.key === amountKey)?.mult ?? 1;
+  return Math.round(trigger.load * mult);
+}
+
+// NSAIDs disrupt intestinal tight junctions; Tylenol/antihistamines do not.
+// Only NSAID + simultaneous-with-food carries the full researcher-flagged load.
+export const NSAID_TYPE_OPTIONS = [
+  { key: 'nsaid', label: 'NSAID', descriptor: 'Ibuprofen, Naproxen, Aspirin' },
+  { key: 'other', label: 'Other', descriptor: 'Tylenol, Antihistamine' },
+];
+
+export const NSAID_TIMING_OPTIONS = [
+  { key: 'simultaneous', label: 'With or just before food', descriptor: '' },
+  { key: 'apart',        label: 'Hours apart from food',    descriptor: '' },
+];
+
+const NSAID_LOAD_MULTIPLIERS = {
+  nsaid_simultaneous: 1,
+  nsaid_apart: 0.4,
+  other_simultaneous: 0.15,
+  other_apart: 0.1,
+};
+
+export function computeNsaidLoad(trigger, nsaidType, nsaidTiming) {
+  const mult = NSAID_LOAD_MULTIPLIERS[`${nsaidType}_${nsaidTiming}`] ?? 1;
+  return Math.round(trigger.load * mult);
+}
+
+// Alpha-gal concentrates in mammalian fat, not lean protein — same portion,
+// higher effective load the fattier/more rendered the cut.
+export const FAT_PROFILE_OPTIONS = [
+  { key: 'lean',  label: 'Lean',            descriptor: 'sirloin, venison, lean pork',    mult: 0.8 },
+  { key: 'fatty', label: 'Fatty/Rendered',  descriptor: 'bacon, sausage, marbled ribeye', mult: 1.3 },
+  { key: 'organ', label: 'Organ/High-fat',  descriptor: 'lard, bone broth, suet',         mult: 1.5 },
+];
+
+export function computeFatAdjustedLoad(trigger, amountKey, fatProfileKey) {
+  const amountMult = getAmountOptions(trigger.id).find(o => o.key === amountKey)?.mult ?? 1;
+  const fatMult = FAT_PROFILE_OPTIONS.find(o => o.key === fatProfileKey)?.mult ?? 1;
+  return Math.round(trigger.load * amountMult * fatMult);
+}
 
 export const LOG_CATEGORIES = [
   { key: 'meat',     label: 'Meat & Mammal' },

@@ -21,7 +21,7 @@ function LoadBar({ pct }) {
   );
 }
 
-export default function HistoryScreen({ history, checkinHistory, dateKeys, onAppendItem, todayCheckin }) {
+export default function HistoryScreen({ history, checkinHistory, dateKeys, onAppendItem, todayCheckin, tickBitesByDate = {} }) {
   const [openDay, setOpenDay] = useState(null);
   const today = localDateKey();
 
@@ -32,7 +32,7 @@ export default function HistoryScreen({ history, checkinHistory, dateKeys, onApp
     return next === today ? todayCheckin : checkinHistory?.[next];
   };
 
-  const activeDays = dateKeys.filter(k => history[k]);
+  const activeDays = dateKeys.filter(k => history[k] || tickBitesByDate[k]);
 
   return (
     <div style={{ padding: '20px 20px 100px', fontFamily: "'DM Sans', sans-serif" }}>
@@ -65,6 +65,8 @@ export default function HistoryScreen({ history, checkinHistory, dateKeys, onApp
             const hadReaction = hasCheckin && !symptoms.includes('fine');
             const feltFine    = symptoms.includes('fine');
             const connectorColor = hadReaction ? P.orange : feltFine ? P.green : P.borderLight;
+            const dayTickBites = tickBitesByDate[dateKey] ?? [];
+            const hasTickBite = dayTickBites.length > 0;
 
             return (
               <button
@@ -73,7 +75,7 @@ export default function HistoryScreen({ history, checkinHistory, dateKeys, onApp
                 style={{
                   padding: '14px 16px',
                   background: P.card,
-                  border: `1.5px solid ${hadReaction ? '#E0A090' : P.border}`,
+                  border: `1.5px solid ${hasTickBite ? P.red : hadReaction ? '#E0A090' : P.border}`,
                   borderRadius: 14, cursor: 'pointer',
                   textAlign: 'left',
                 }}
@@ -89,10 +91,25 @@ export default function HistoryScreen({ history, checkinHistory, dateKeys, onApp
                     </span>
                   </div>
                   <span style={{ fontSize: 18, fontWeight: 700, color: bucketColor(load), fontFamily: "'Lora', serif" }}>
-                    {load}%
+                    {load > 0 ? `${load}%` : ''}
                   </span>
                 </div>
-                <LoadBar pct={load} />
+
+                {hasTickBite && (
+                  <div style={{
+                    display: 'inline-flex', alignItems: 'center', gap: 5,
+                    padding: '4px 10px', marginBottom: 10,
+                    background: P.redLight, border: `1.5px solid ${P.red}`,
+                    borderRadius: 20,
+                  }}>
+                    <span style={{ fontSize: 12 }}>🕷️</span>
+                    <span style={{ fontSize: 11, color: P.red, fontWeight: 600, fontFamily: "'DM Sans', sans-serif" }}>
+                      {dayTickBites.length} tick bite{dayTickBites.length !== 1 ? 's' : ''} logged
+                    </span>
+                  </div>
+                )}
+
+                {itemCount > 0 && <LoadBar pct={load} />}
 
                 {/* Feel connector */}
                 <div style={{
@@ -143,6 +160,7 @@ export default function HistoryScreen({ history, checkinHistory, dateKeys, onApp
           dateKey={openDay}
           logData={history[openDay]}
           checkinData={getFeelCheckin(openDay)}
+          tickBites={tickBitesByDate[openDay] ?? []}
           onAppendItem={onAppendItem}
           onClose={() => setOpenDay(null)}
         />

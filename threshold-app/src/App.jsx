@@ -4,6 +4,7 @@ import { useProfile } from './hooks/useProfile';
 import { useDailyLog } from './hooks/useDailyLog';
 import { useCheckin } from './hooks/useCheckin';
 import { useLogHistory } from './hooks/useLogHistory';
+import { useTickBites } from './hooks/useTickBites';
 import { P } from './data/palette';
 
 import AuthScreen from './screens/AuthScreen';
@@ -26,9 +27,10 @@ const NAV_TABS = [
 function AppShell() {
   const { currentUser } = useAuth();
   const { profile, loading: profileLoading, saveProfile } = useProfile(currentUser?.uid);
-  const { logData, loading: logLoading, addItem, removeItem, setDayContext } = useDailyLog(currentUser?.uid);
+  const { logData, loading: logLoading, addItem, removeItem, setDayContext, setAcidBlockerToday } = useDailyLog(currentUser?.uid);
   const { checkin, loading: checkinLoading, saveCheckin } = useCheckin(currentUser?.uid);
   const { history, checkinHistory, loading: historyLoading, dateKeys, appendItemToDate } = useLogHistory(currentUser?.uid, 30);
+  const { byDate: tickBitesByDate, addTickBite } = useTickBites(currentUser?.uid);
   const [tab, setTab] = useState('home');
 
   useEffect(() => {
@@ -42,8 +44,8 @@ function AppShell() {
     return <OnboardingScreen onComplete={saveProfile} />;
   }
 
-  const handleAddItem = async (trigger, amount) => {
-    await addItem(trigger, amount);
+  const handleAddItem = async (trigger, amount, extra) => {
+    await addItem(trigger, amount, extra);
     setTab('home');
   };
 
@@ -117,6 +119,7 @@ function AppShell() {
             profile={profile}
             onSetDayContext={setDayContext}
             onRemoveItem={removeItem}
+            onSetAcidBlockerToday={setAcidBlockerToday}
             setTab={setTab}
           />
         )}
@@ -125,6 +128,7 @@ function AppShell() {
             onAdd={handleAddItem}
             onRemove={removeItem}
             loggedItems={logData.items}
+            onLogTickBite={addTickBite}
             onBack={() => setTab('home')}
           />
         )}
@@ -142,6 +146,7 @@ function AppShell() {
             dateKeys={dateKeys}
             onAppendItem={appendItemToDate}
             todayCheckin={checkin}
+            tickBitesByDate={tickBitesByDate}
           />
         )}
         {tab === 'profile' && (

@@ -67,6 +67,12 @@ Nick has AGS. Building for himself and ~10 friends initially, with an eye toward
 - Sign-out/sign-in routing bug fixed (tab resets to home on auth change)
 - Firestore security rules: users can only read/write their own documents
 - PWA manifest + service worker
+- Threshold markers on gauge ring: tick marks at personal GI/Hives/Severe thresholds, pulled from profile
+- Contextual amount-selector language per cofactor: Sick/Stress (Mild/Moderate/Severe), Heat and Exercise (2-point Brief-Extended / Light-Intense scales, no forced "moderate"), Alcohol (One drink/A few drinks/Several drinks). Amount option sets and load math centralized in `data/triggers.js` (`getAmountOptions`, `computeEffectiveLoad`) so TileModal and the log-history append flow can't drift apart.
+- Tick bite logging: dedicated entry point on Log screen ("🕷️ Log a tick bite"), captures date/body location/region/attachment duration/tick size, stored under `users/{uid}/tickBites/{timestamp}`. Distinct red-themed treatment in History (badge on days with a bite, full detail in the past-day modal) — tick-only days (no food log) render without a bucket-load bar.
+- NSAID type/timing modifier (researcher-informed): tapping the NSAID or Aspirin tile replaces the amount selector with Type (NSAID vs Other) + Timing (with food vs apart) choices, pre-selected to the conservative default so default tap-through cost is unchanged. Only NSAID+simultaneous carries full load; other combinations are reduced (see `computeNsaidLoad` in `data/triggers.js`).
+- PPI/acid blocker toggle (researcher-informed): profile default ("I take a daily acid blocker") auto-applies each day; one-tap override chip on Home next to Day Context. Stored but not yet factored into bucket math — no researcher-specified load value exists for it (see "Don't fake science" principle).
+- Fat profile modifier on meat tiles (researcher-informed): Lean/Fatty-Rendered/Organ-High-fat selector on Meat & Mammal tiles, pre-selected to "Fatty/Rendered" so the default tap-through path costs no extra taps. Adjusts effective load via `computeFatAdjustedLoad`.
 
 ### Expanded trigger library (current):
 **Meat & Mammal:** Beef, Pork, Lamb, Venison/Bison, Rabbit, Veal, Hot Dogs
@@ -75,94 +81,14 @@ Nick has AGS. Building for himself and ~10 friends initially, with an eye toward
 **Co-factors:** Alcohol, Ibuprofen/NSAIDs, Heat/Hot, Exercise, Sick/Stress
 **OTC Medicines:** (expanding in next session)
 
+### Load multipliers are product estimates, not clinical values
+Per the "don't fake science" principle, multipliers for fat profile (lean 0.8x / fatty 1.3x / organ 1.5x) and NSAID type+timing (nsaid+simultaneous 1x / nsaid+apart 0.4x / other+simultaneous 0.15x / other+apart 0.1x) are directionally faithful to the researcher's guidance but not derived from a cited formula — flag if real data suggests different ratios.
+
 ---
 
 ## Queued for Next Session
 
-Build in this order. Confirm plan before writing any code.
-
-### 1. Threshold markers on gauge ring
-Draw tick marks on the SVG ring at the user's personal GI, Hives, and Severe threshold percentages. Label minimally. As the bucket fills toward a marker, the user sees it coming. Pull values from user profile.
-
-### 2. Cofactor amount language
-Current small/moderate/large was designed for food — wrong for cofactors. Use contextually appropriate language per type:
-- Sick/Stress: Mild / Moderate / Severe
-- NSAIDs: One dose / Multiple doses
-- Heat: Brief exposure / Extended exposure
-- Exercise: Light activity / Intense workout
-- Alcohol: One drink / A few drinks / Several drinks
-
-### 3. Tick bite logging
-Dedicated log entry — not a food tile. Capture:
-- Date (defaults to today)
-- Body location (simple text or picker)
-- Geographic region (Northeast / Southeast / Midwest / Southwest / West / Other)
-- Attachment duration (Crawling/under 4hrs / Embedded about a day / Engorged over 24hrs)
-- Tick size (Speck/seed tick / Small/nymph / Large/adult)
-
-Store under `users/{uid}/tickBites/{timestamp}`. Surface in History with distinct visual treatment. Add accessible entry point (home or log screen).
-
-### 4. NSAID type and timing modifier (researcher-informed)
-When any NSAID tile is tapped, replace generic amount with two quick choices:
-- **Type:** "NSAID (Ibuprofen/Naproxen/Aspirin)" vs "Other (Tylenol/Antihistamine)"
-- **Timing:** "With or just before food" vs "Hours apart from food"
-
-NSAIDs disrupt intestinal tight junctions; Tylenol does not. Only NSAID + simultaneous timing carries full bucket load. Store `nsaidType` and `nsaidTiming` on item.
-
-### 5. PPI / acid blocker daily toggle (researcher-informed)
-PPIs and H2 blockers (Omeprazole, Famotidine, Pepcid) reduce stomach acid, leaving larger alpha-gal peptide chains intact and increasing effective load. Add:
-- Profile default: "I take a daily acid blocker" toggle (auto-logs unless overridden)
-- Daily override available in morning check-in or home screen
-- Store `acidBlockerDefault` in profile, `acidBlockerToday` in daily log
-
-### 6. Fat profile modifier on meat tiles (researcher-informed)
-Alpha-gal concentrates in mammalian fat, not lean protein. When any Meat & Mammal tile is tapped, add fat profile selector:
-- Lean (sirloin, venison, lean pork)
-- Fatty/Rendered (bacon, sausage, marbled ribeye)
-- Organ/High-fat broth (lard, bone broth, suet)
-
-Adjust effective load accordingly — fatty/rendered carries meaningfully higher load than lean at same portion. Store `fatProfile` on meat items.
-
-### 7. Firestore schema updates
-```javascript
-// Updated item structure
-{
-  triggerId: string,
-  label: string,
-  category: string,
-  baseLoad: number,
-  amount: string,
-  effectiveLoad: number,
-  fatProfile: string,        // meat items only: 'lean' | 'fatty' | 'organ'
-  nsaidType: string,         // NSAID items only: 'nsaid' | 'other'
-  nsaidTiming: string,       // NSAID items only: 'simultaneous' | 'apart'
-  loggedAt: timestamp
-}
-
-// New tick bite subcollection
-users/{uid}/tickBites/{timestamp}
-{
-  date: string,              // YYYY-MM-DD
-  bodyLocation: string,
-  region: string,
-  attachmentDuration: string, // 'crawling' | 'embedded' | 'engorged'
-  tickSize: string,           // 'seed' | 'nymph' | 'adult'
-  loggedAt: timestamp
-}
-
-// Profile additions
-{
-  ...existing,
-  acidBlockerDefault: boolean
-}
-
-// Daily log additions
-users/{uid}/logs/{YYYY-MM-DD}
-{
-  ...existing,
-  acidBlockerToday: boolean
-}
-```
+_Empty — the AGS researcher review batch (threshold gauge ticks, cofactor amount language, tick bite logging, NSAID type/timing modifier, PPI/acid blocker toggle, fat profile modifier, and the schema updates underneath them) shipped this session. See Current Build State above for what each does and where the load-multiplier estimates live._
 
 ---
 

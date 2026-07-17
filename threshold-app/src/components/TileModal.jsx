@@ -1,17 +1,69 @@
 import { useState } from 'react';
 import { P } from '../data/palette';
 import { bucketBg, bucketColor } from '../data/bucketUtils';
+import {
+  getAmountOptions, computeEffectiveLoad,
+  NSAID_TYPE_OPTIONS, NSAID_TIMING_OPTIONS, computeNsaidLoad,
+  FAT_PROFILE_OPTIONS, computeFatAdjustedLoad,
+} from '../data/triggers';
 
-const AMOUNT_DESCRIPTORS = {
-  small:    'a few bites or sips',
-  moderate: 'a normal serving',
-  large:    'a large portion or several servings',
-};
+function ChoiceRow({ options, selected, onSelect }) {
+  return (
+    <div style={{ display: 'flex', gap: 8, marginBottom: 18 }}>
+      {options.map(o => (
+        <button
+          key={o.key}
+          onClick={() => onSelect(o.key)}
+          style={{
+            flex: 1, padding: '13px 6px 11px',
+            border: `2px solid ${selected === o.key ? P.amber : P.border}`,
+            borderRadius: 13,
+            background: selected === o.key ? P.amberLight : 'white',
+            color: selected === o.key ? P.brown : P.textMid,
+            fontFamily: "'DM Sans', sans-serif",
+            cursor: 'pointer',
+            display: 'flex', flexDirection: 'column', alignItems: 'center', gap: 3,
+          }}
+        >
+          <span style={{ fontSize: 13, fontWeight: selected === o.key ? 600 : 400, textAlign: 'center' }}>{o.label}</span>
+          {o.descriptor && (
+            <span style={{ fontSize: 10, color: selected === o.key ? P.brownLight : P.textLight, lineHeight: 1.3, textAlign: 'center' }}>
+              {o.descriptor}
+            </span>
+          )}
+        </button>
+      ))}
+    </div>
+  );
+}
 
 export default function TileModal({ trigger, isLogged, existingItem, onConfirm, onRemove, onClose, zIndex = 200 }) {
-  const [amount, setAmount] = useState(existingItem?.amount ?? 'moderate');
-  const multipliers = { small: 0.5, moderate: 1, large: 1.5 };
-  const effectiveLoad = Math.round(trigger.load * multipliers[amount]);
+  const isNsaid = trigger.nsaidModifier === true;
+  const isMeat = trigger.cat === 'meat';
+
+  const amountOptions = getAmountOptions(trigger.id);
+  const defaultAmount = amountOptions.find(o => o.key === 'moderate')?.key ?? amountOptions[0].key;
+  const [amount, setAmount] = useState(existingItem?.amount ?? defaultAmount);
+  const [nsaidType, setNsaidType] = useState(existingItem?.nsaidType ?? 'nsaid');
+  const [nsaidTiming, setNsaidTiming] = useState(existingItem?.nsaidTiming ?? 'simultaneous');
+  const [fatProfile, setFatProfile] = useState(existingItem?.fatProfile ?? 'fatty');
+
+  let effectiveLoad, confirmExtra, confirmAmount;
+  if (isNsaid) {
+    effectiveLoad = computeNsaidLoad(trigger, nsaidType, nsaidTiming);
+    const typeLabel = NSAID_TYPE_OPTIONS.find(o => o.key === nsaidType).label;
+    const timingLabel = NSAID_TIMING_OPTIONS.find(o => o.key === nsaidTiming).label;
+    confirmAmount = `${typeLabel}, ${timingLabel.toLowerCase()}`;
+    confirmExtra = { nsaidType, nsaidTiming, effectiveLoad };
+  } else if (isMeat) {
+    effectiveLoad = computeFatAdjustedLoad(trigger, amount, fatProfile);
+    confirmAmount = amount;
+    confirmExtra = { fatProfile, effectiveLoad };
+  } else {
+    effectiveLoad = computeEffectiveLoad(trigger, amount);
+    confirmAmount = amount;
+    confirmExtra = { effectiveLoad };
+  }
 
   return (
     <div
@@ -42,32 +94,36 @@ export default function TileModal({ trigger, isLogged, existingItem, onConfirm, 
           </p>
         </div>
 
-        <p style={{ fontSize: 13, color: P.textMid, fontFamily: "'DM Sans', sans-serif", marginBottom: 10 }}>
-          How much?
-        </p>
-        <div style={{ display: 'flex', gap: 8, marginBottom: 22 }}>
-          {['small', 'moderate', 'large'].map(a => (
-            <button
-              key={a}
-              onClick={() => setAmount(a)}
-              style={{
-                flex: 1, padding: '13px 6px 11px',
-                border: `2px solid ${amount === a ? P.amber : P.border}`,
-                borderRadius: 13,
-                background: amount === a ? P.amberLight : 'white',
-                color: amount === a ? P.brown : P.textMid,
-                fontFamily: "'DM Sans', sans-serif",
-                cursor: 'pointer',
-                display: 'flex', flexDirection: 'column', alignItems: 'center', gap: 3,
-              }}
-            >
-              <span style={{ fontSize: 13, fontWeight: amount === a ? 600 : 400, textTransform: 'capitalize' }}>{a}</span>
-              <span style={{ fontSize: 10, color: amount === a ? P.brownLight : P.textLight, lineHeight: 1.3, textAlign: 'center' }}>
-                {AMOUNT_DESCRIPTORS[a]}
-              </span>
-            </button>
-          ))}
-        </div>
+        {isNsaid && (
+          <>
+            <p style={{ fontSize: 13, color: P.textMid, fontFamily: "'DM Sans', sans-serif", marginBottom: 10 }}>
+              What kind?
+            </p>
+            <ChoiceRow options={NSAID_TYPE_OPTIONS} selected={nsaidType} onSelect={setNsaidType} />
+            <p style={{ fontSize: 13, color: P.textMid, fontFamily: "'DM Sans', sans-serif", marginBottom: 10 }}>
+              When, relative to food?
+            </p>
+            <ChoiceRow options={NSAID_TIMING_OPTIONS} selected={nsaidTiming} onSelect={setNsaidTiming} />
+          </>
+        )}
+
+        {!isNsaid && (
+          <>
+            <p style={{ fontSize: 13, color: P.textMid, fontFamily: "'DM Sans', sans-serif", marginBottom: 10 }}>
+              How much?
+            </p>
+            <ChoiceRow options={amountOptions} selected={amount} onSelect={setAmount} />
+          </>
+        )}
+
+        {isMeat && (
+          <>
+            <p style={{ fontSize: 13, color: P.textMid, fontFamily: "'DM Sans', sans-serif", marginBottom: 10 }}>
+              Fat profile?
+            </p>
+            <ChoiceRow options={FAT_PROFILE_OPTIONS} selected={fatProfile} onSelect={setFatProfile} />
+          </>
+        )}
 
         <div style={{
           background: bucketBg(effectiveLoad * 2),
@@ -84,7 +140,7 @@ export default function TileModal({ trigger, isLogged, existingItem, onConfirm, 
         </div>
 
         <button
-          onClick={() => onConfirm(trigger, amount)}
+          onClick={() => onConfirm(trigger, confirmAmount, confirmExtra)}
           style={{
             width: '100%', padding: '16px',
             background: P.brown, color: 'white',
@@ -94,7 +150,7 @@ export default function TileModal({ trigger, isLogged, existingItem, onConfirm, 
             marginBottom: isLogged ? 10 : 0,
           }}
         >
-          {isLogged ? 'Update Amount' : 'Add to Today'}
+          {isLogged ? 'Update' : 'Add to Today'}
         </button>
 
         {isLogged && (

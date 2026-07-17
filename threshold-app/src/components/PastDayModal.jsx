@@ -1,6 +1,6 @@
 import { useState } from 'react';
 import { P } from '../data/palette';
-import { TRIGGERS, SYMPTOMS } from '../data/triggers';
+import { TRIGGERS, SYMPTOMS, TICK_REGIONS, TICK_ATTACHMENT_DURATIONS, TICK_SIZES } from '../data/triggers';
 import { bucketColor, bucketBg } from '../data/bucketUtils';
 import TileModal from './TileModal';
 
@@ -10,14 +10,14 @@ function formatDateLabel(dateKey) {
   return date.toLocaleDateString('en-US', { weekday: 'long', month: 'short', day: 'numeric' });
 }
 
-export default function PastDayModal({ dateKey, logData, checkinData, onAppendItem, onClose }) {
+export default function PastDayModal({ dateKey, logData, checkinData, tickBites = [], onAppendItem, onClose }) {
   const [addModal, setAddModal] = useState(null);
   const items = logData?.items ?? [];
   const load = logData?.totalLoad ?? 0;
   const symptoms = checkinData?.symptoms ?? [];
 
-  const handleAddConfirm = async (trigger, amount) => {
-    await onAppendItem(dateKey, trigger, amount);
+  const handleAddConfirm = async (trigger, amount, extra) => {
+    await onAppendItem(dateKey, trigger, amount, extra);
     setAddModal(null);
   };
 
@@ -65,7 +65,31 @@ export default function PastDayModal({ dateKey, logData, checkinData, onAppendIt
             </button>
           </div>
 
-          {items.length === 0 && (
+          {tickBites.length > 0 && (
+            <div style={{ marginBottom: 20 }}>
+              <p style={{ fontSize: 11, color: P.red, letterSpacing: '0.1em', textTransform: 'uppercase', fontWeight: 600, marginBottom: 10, fontFamily: "'DM Sans', sans-serif" }}>
+                🕷️ Tick Bites
+              </p>
+              <div style={{ display: 'flex', flexDirection: 'column', gap: 8 }}>
+                {tickBites.map(tb => (
+                  <div key={tb.id} style={{
+                    padding: '10px 14px',
+                    background: P.redLight, border: `1.5px solid ${P.red}`,
+                    borderRadius: 13,
+                  }}>
+                    <span style={{ fontSize: 13, color: P.textDark, fontFamily: "'DM Sans', sans-serif", display: 'block' }}>
+                      {tb.bodyLocation || 'Location not noted'} · {TICK_REGIONS.find(r => r.key === tb.region)?.label ?? tb.region}
+                    </span>
+                    <span style={{ fontSize: 11, color: P.textMid, fontFamily: "'DM Sans', sans-serif" }}>
+                      {TICK_SIZES.find(s => s.key === tb.tickSize)?.label ?? tb.tickSize} · {TICK_ATTACHMENT_DURATIONS.find(a => a.key === tb.attachmentDuration)?.label ?? tb.attachmentDuration}
+                    </span>
+                  </div>
+                ))}
+              </div>
+            </div>
+          )}
+
+          {items.length === 0 && tickBites.length === 0 && (
             <p style={{ fontSize: 14, color: P.textLight, fontFamily: "'DM Sans', sans-serif", marginBottom: 20 }}>
               Nothing logged for this day.
             </p>
@@ -162,7 +186,7 @@ function AddForgottenModal({ loggedIds, onAdd, onClose }) {
           trigger={selected}
           isLogged={false}
           zIndex={400}
-          onConfirm={(trigger, amount) => { onAdd(trigger, amount); setSelected(null); }}
+          onConfirm={(trigger, amount, extra) => { onAdd(trigger, amount, extra); setSelected(null); }}
           onClose={() => setSelected(null)}
         />
       )}

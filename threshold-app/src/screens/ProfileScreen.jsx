@@ -7,6 +7,7 @@ export default function ProfileScreen({ profile, onSave, onLabResults }) {
   const [name, setName] = useState(profile?.name ?? '');
   const [igeNumber, setIgeNumber] = useState(profile?.igeNumber ?? '');
   const [thresholds, setThresholds] = useState(profile?.thresholds ?? { gi: 55, hives: 80, severe: 95 });
+  const [acidBlockerDefault, setAcidBlockerDefault] = useState(profile?.acidBlockerDefault ?? false);
   const [saved, setSaved] = useState(false);
 
   const handleSave = async () => {
@@ -14,6 +15,7 @@ export default function ProfileScreen({ profile, onSave, onLabResults }) {
       name: name.trim() || 'You',
       igeNumber: parseFloat(igeNumber) || null,
       thresholds,
+      acidBlockerDefault,
     });
     setSaved(true);
     setTimeout(() => setSaved(false), 2000);
@@ -64,6 +66,29 @@ export default function ProfileScreen({ profile, onSave, onLabResults }) {
         <div>
           <label style={{ fontSize: 12, color: P.textLight, display: 'block' }}>Signed in as {currentUser?.email}</label>
         </div>
+        <button
+          onClick={() => setAcidBlockerDefault(v => !v)}
+          style={{
+            display: 'flex', justifyContent: 'space-between', alignItems: 'center',
+            padding: '13px 16px',
+            border: `1.5px solid ${acidBlockerDefault ? P.amber : P.border}`,
+            borderRadius: 13,
+            background: acidBlockerDefault ? P.amberLight : P.card,
+            cursor: 'pointer', textAlign: 'left',
+          }}
+        >
+          <span>
+            <span style={{ fontSize: 14, color: P.textDark, fontWeight: 500, fontFamily: "'DM Sans', sans-serif", display: 'block' }}>
+              I take a daily acid blocker
+            </span>
+            <span style={{ fontSize: 12, color: P.textLight, fontFamily: "'DM Sans', sans-serif" }}>
+              PPI or H2 blocker (Omeprazole, Famotidine, Pepcid). Auto-logs each day unless you override it.
+            </span>
+          </span>
+          <span style={{ fontSize: 22, color: acidBlockerDefault ? P.amber : P.border }}>
+            {acidBlockerDefault ? '●' : '○'}
+          </span>
+        </button>
       </div>
 
       <p style={{ fontSize: 11, color: P.textLight, letterSpacing: '0.1em', textTransform: 'uppercase', fontWeight: 600, marginBottom: 12 }}>

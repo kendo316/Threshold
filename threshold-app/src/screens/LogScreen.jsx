@@ -2,17 +2,24 @@ import { useState } from 'react';
 import { P } from '../data/palette';
 import { TRIGGERS, LOG_CATEGORIES } from '../data/triggers';
 import TileModal from '../components/TileModal';
+import TickBiteModal from '../components/TickBiteModal';
 import ScrollFade from '../components/ScrollFade';
 
-export default function LogScreen({ onAdd, onRemove, loggedItems, onBack }) {
+export default function LogScreen({ onAdd, onRemove, loggedItems, onLogTickBite, onBack }) {
   const [modal, setModal] = useState(null);
+  const [tickModalOpen, setTickModalOpen] = useState(false);
+
+  const handleTickConfirm = async (data) => {
+    await onLogTickBite(data);
+    setTickModalOpen(false);
+  };
 
   const handleTileTap = (trigger) => {
     setModal(trigger);
   };
 
-  const handleConfirm = (trigger, amount) => {
-    onAdd(trigger, amount);
+  const handleConfirm = (trigger, amount, extra) => {
+    onAdd(trigger, amount, extra);
     setModal(null);
   };
 
@@ -31,6 +38,13 @@ export default function LogScreen({ onAdd, onRemove, loggedItems, onBack }) {
           onConfirm={handleConfirm}
           onRemove={handleRemoveFromModal}
           onClose={() => setModal(null)}
+        />
+      )}
+
+      {tickModalOpen && (
+        <TickBiteModal
+          onConfirm={handleTickConfirm}
+          onClose={() => setTickModalOpen(false)}
         />
       )}
 
@@ -112,6 +126,21 @@ export default function LogScreen({ onAdd, onRemove, loggedItems, onBack }) {
             </div>
           );
         })}
+
+        <button
+          onClick={() => setTickModalOpen(true)}
+          style={{
+            width: '100%', padding: '14px',
+            background: 'transparent',
+            border: `1.5px dashed ${P.border}`,
+            borderRadius: 14, cursor: 'pointer',
+            fontSize: 14, color: P.textLight,
+            fontFamily: "'DM Sans', sans-serif",
+            fontWeight: 500,
+          }}
+        >
+          🕷️ Log a tick bite
+        </button>
       </div>
     </div>
   );
