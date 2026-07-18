@@ -1,5 +1,5 @@
 import { useState, useEffect, useCallback } from 'react';
-import { doc, getDoc, setDoc, collection, getDocs, query, where, orderBy } from 'firebase/firestore';
+import { doc, getDoc, setDoc } from 'firebase/firestore';
 import { db } from '../firebase';
 import { localDateKey } from './useDailyLog';
 
@@ -22,7 +22,6 @@ export function useLogHistory(uid, days = 30) {
 
   useEffect(() => {
     if (!uid) return;
-    setLoading(true);
 
     const fetchAll = async () => {
       const logPromises = dateKeys.map(key =>
@@ -58,7 +57,7 @@ export function useLogHistory(uid, days = 30) {
       loggedAt: new Date().toISOString(),
     };
 
-    const existing = history[dateKey] ?? { items: [], totalLoad: 0, dayContext: null, notes: '' };
+    const existing = history[dateKey] ?? { items: [], totalLoad: 0, notes: '' };
     const items = [...existing.items, newItem];
     const totalLoad = Math.min(100, items.reduce((s, i) => s + i.effectiveLoad, 0));
     const updated = { ...existing, items, totalLoad, userId: uid, date: dateKey };

@@ -49,21 +49,27 @@ Nick has AGS. Building for himself and ~10 friends initially, with an eye toward
 ### Completed and working:
 - Firebase Auth (email/password sign-up/sign-in/sign-out)
 - Onboarding flow: disclaimer → name + IgE → threshold sliders (GI/Hives/Severe)
-- Home screen: bucket gauge, day context selector, contextual advice, today's log summary
-- Bucket gauge: circular SVG, fills green → amber → orange → red
-- Log screen: tile grid (Meat & Mammal, Dairy, Hidden Sources, Co-factors, OTC Medicines)
-- Tile detail modal: amount selector with descriptors, bucket impact preview, educational note
-- Amount descriptors on food: "a few bites or sips" / "a normal serving" / "a large portion or several servings"
-- Remove from log: tap logged tile → modal shows "Remove from today's log"
+- Home screen: bucket gauge (with personal threshold tick marks), contextual advice, today's log summary, quiet "Mark today mammal-free" action
+- Bucket gauge: circular SVG, fills green → amber → orange → red, threshold ticks drawn from profile
+- Log screen: tile grid (Meat & Mammal, Dairy, Hidden Sources, Co-factors, Medications), plus a quiet "Log a tick bite" entry point
+- Tile detail modal: amount selector with per-type contextual language (not one-size-fits-all food portions), bucket impact preview (hidden for zero-load items), educational note; CTA copy is day-aware ("Add to Today" vs "Add to This Day")
+- Per-type amount language: food (portions), drinks (alcohol), dose (NSAIDs/OTC/supplements), exposure (heat), intensity (exercise), severity (sick/stress/exhaustion), contact (lanolin)
+- Remove from log: tap logged tile → modal shows day-aware remove copy
 - "Done for now" button in log screen header
 - Morning check-in: symptom tiles logged against prior day (eat→feel pairing with correct date offset)
 - Date-aware logging: uses local date not UTC
-- History screen: 30-day scrollable list, eat→feel narrative with connector, correct D/D+1 pairing
+- History screen: 30-day scrollable list, eat→feel narrative with connector, correct D/D+1 pairing, quiet 🌱 mammal-free indicator when applicable
 - Header date strip: two past-day chips with load dot + symptom indicator, non-interactive today pill
-- Past day modal: read-only view with append-only "add something I forgot"
-- Profile screen: name, IgE, threshold sliders, sign out
+- Past day modal: bottom-sheet with drag handle, internal scroll + sticky footer, append-only "add something I forgot" (day-aware copy)
+- Profile screen: back button, name, IgE, living threshold sliders (reframed — revisitable anytime, shows "last adjusted" date), daily acid-blocker default toggle, standing medications (set-once), tick-bite history (list + manual past-bite entry), lab results link, sign out
 - Lab results screen: allergen-specific IgE fields, "I don't have these yet" toggle, Firebase storage
-- Scroll fade on Log and History screens
+- Tick bites: in-the-moment quick log (Log screen) + manual past-bite entry (Profile), both writing to `users/{uid}/tickBites`; logging one surfaces a gentle, dismissible nudge to revisit thresholds
+- Mammal-free days: quiet per-day flag with a warm one-off celebration toast ("Mammal-free day ✨"), rare (~1-in-8) pixel-art robot easter egg ("COMPLIANCE!" — a wink to Max from *Flight of the Navigator*); no streaks or counters are ever shown in daily UI
+- Situational medications: Daily Antihistamine, Benadryl, Pepcid/Famotidine tiles in the Medications category; Pepcid ties directly into the acid-blocker flag (no redundant "some antacid" tile)
+- Standing medications: profile-level chips (Escitalopram, Bupropion, GLP-1/semaglutide/tirzepatide family) + free text
+- Day-context selector (Home/Work/Travel/Social) removed — changed advice copy only, no data, didn't earn its space
+- Shared `Toast` component, global button tap-scale feedback, screen fade-in transitions, safe-area-aware spacing throughout (modals, bottom nav, screen padding)
+- Scroll fade on Log and History screens; bottom sheets use an internal scroll region + sticky footer instead
 - Sign-out/sign-in routing bug fixed (tab resets to home on auth change)
 - Firestore security rules: users can only read/write their own documents
 - PWA manifest + service worker
@@ -72,56 +78,35 @@ Nick has AGS. Building for himself and ~10 friends initially, with an eye toward
 **Meat & Mammal:** Beef, Pork, Lamb, Venison/Bison, Rabbit, Veal, Hot Dogs
 **Dairy:** Milk/Cream, Butter, Cheese, Ice Cream, Yogurt
 **Hidden Sources:** Gelatin, Bone Broth, Lard/Tallow, Worcestershire, Lanolin, Supplements
-**Co-factors:** Alcohol, Ibuprofen/NSAIDs, Heat/Hot, Exercise, Sick/Stress
-**OTC Medicines:** (expanding in next session)
+**Co-factors:** Alcohol, Ibuprofen/NSAIDs, Heat/Hot, Exercise, Sick/Stress, Exhaustion
+**Medications:** Gel Capsules, Aspirin, Daily Antihistamine, Benadryl, Pepcid/Famotidine
 
 ---
 
 ## Queued for Next Session
 
-Build in this order. Confirm plan before writing any code.
+Not part of the last session's scope — still open:
 
-### 1. Threshold markers on gauge ring
-Draw tick marks on the SVG ring at the user's personal GI, Hives, and Severe threshold percentages. Label minimally. As the bucket fills toward a marker, the user sees it coming. Pull values from user profile.
-
-### 2. Cofactor amount language
-Current small/moderate/large was designed for food — wrong for cofactors. Use contextually appropriate language per type:
-- Sick/Stress: Mild / Moderate / Severe
-- NSAIDs: One dose / Multiple doses
-- Heat: Brief exposure / Extended exposure
-- Exercise: Light activity / Intense workout
-- Alcohol: One drink / A few drinks / Several drinks
-
-### 3. Tick bite logging
-Dedicated log entry — not a food tile. Capture:
-- Date (defaults to today)
-- Body location (simple text or picker)
-- Geographic region (Northeast / Southeast / Midwest / Southwest / West / Other)
-- Attachment duration (Crawling/under 4hrs / Embedded about a day / Engorged over 24hrs)
-- Tick size (Speck/seed tick / Small/nymph / Large/adult)
-
-Store under `users/{uid}/tickBites/{timestamp}`. Surface in History with distinct visual treatment. Add accessible entry point (home or log screen).
-
-### 4. NSAID type and timing modifier (researcher-informed)
+### 1. NSAID type and timing modifier (researcher-informed)
 When any NSAID tile is tapped, replace generic amount with two quick choices:
 - **Type:** "NSAID (Ibuprofen/Naproxen/Aspirin)" vs "Other (Tylenol/Antihistamine)"
 - **Timing:** "With or just before food" vs "Hours apart from food"
 
 NSAIDs disrupt intestinal tight junctions; Tylenol does not. Only NSAID + simultaneous timing carries full bucket load. Store `nsaidType` and `nsaidTiming` on item.
 
-### 5. PPI / acid blocker daily toggle (researcher-informed)
-PPIs and H2 blockers (Omeprazole, Famotidine, Pepcid) reduce stomach acid, leaving larger alpha-gal peptide chains intact and increasing effective load. Add:
-- Profile default: "I take a daily acid blocker" toggle (auto-logs unless overridden)
-- Daily override available in morning check-in or home screen
-- Store `acidBlockerDefault` in profile, `acidBlockerToday` in daily log
-
-### 6. Fat profile modifier on meat tiles (researcher-informed)
+### 2. Fat profile modifier on meat tiles (researcher-informed)
 Alpha-gal concentrates in mammalian fat, not lean protein. When any Meat & Mammal tile is tapped, add fat profile selector:
 - Lean (sirloin, venison, lean pork)
 - Fatty/Rendered (bacon, sausage, marbled ribeye)
 - Organ/High-fat broth (lard, bone broth, suet)
 
 Adjust effective load accordingly — fatty/rendered carries meaningfully higher load than lean at same portion. Store `fatProfile` on meat items.
+
+### 3. Acid-blocker load science (researcher-informed, deliberately deferred)
+The current acid-blocker toggle/tile only tracks *whether* an acid blocker was taken (`acidBlockerToday`) — it does not yet adjust bucket math. The researcher-informed idea (PPIs/H2 blockers increasing effective load of other items eaten same-day) is a real bucket-math change that wasn't built this session, to avoid faking science ahead of validation. Revisit once there's a clear model for the multiplier.
+
+### 4. Mammal-free research surfacing
+Mammal-free days are captured per-day (`logs/{date}.mammalFree`) but nothing reads them back yet beyond a quiet history indicator. Build the doctor/research-facing aggregate view (e.g. "19 of the last 21 days mammal-free") when there's an actual export/consult flow to attach it to — deliberately not built speculatively.
 
 ### 7. Firestore schema updates
 ```javascript
@@ -210,7 +195,9 @@ users/{uid}/data/profile
   name: string,
   igeNumber: number,
   thresholds: { gi: number, hives: number, severe: number },
+  thresholdsUpdatedAt: string,      // ISO — set whenever thresholds actually change
   acidBlockerDefault: boolean,
+  standingMedications: { chips: string[], other: string },
   onboarded: boolean,
   createdAt: timestamp
 }
@@ -218,10 +205,10 @@ users/{uid}/data/profile
 // Daily log
 users/{uid}/logs/{YYYY-MM-DD}
 {
-  dayContext: string,        // 'home' | 'work' | 'travel' | 'social'
   items: [...],              // see item structure above
   totalLoad: number,
   acidBlockerToday: boolean,
+  mammalFree: boolean,
   notes: string
 }
 
@@ -233,8 +220,8 @@ users/{uid}/checkins/{YYYY-MM-DD}
   loggedAt: timestamp
 }
 
-// Tick bites
-users/{uid}/tickBites/{timestamp}
+// Tick bites (both in-the-moment quick logs and manual past-bite entries)
+users/{uid}/tickBites/{docId}
 {
   date: string,
   bodyLocation: string,
@@ -250,18 +237,17 @@ users/{uid}/tickBites/{timestamp}
 ## Key Product Principles
 
 - **Decision support, not warning system.** The bucket is a budget. Some days you spend freely.
-- **No streaks, no shame.** AG carries enough anxiety. The app never punishes.
+- **No streaks, no shame.** AG carries enough anxiety. The app never punishes. Mammal-free days are a quiet gift (a one-off celebration), never a scoreboard — no streak or counter is ever shown in the daily UI, and non-mammal-free days are never framed as failure.
 - **Eat→feel narrative is core.** AG reactions are delayed 3-8 hours. Morning check-in always maps to prior day's intake. This pairing must never break.
-- **The threshold lines are the differentiating feature.** A map of your body, not a generic scale. Everything builds toward making those lines accurate.
+- **The threshold lines are living, not one-time.** Alpha-gal isn't static — a tick bite can reset tolerance, careful reintroduction can raise it. The threshold sliders are always one tap away from Profile, and logging a tick bite gently (never naggingly) invites the user to revisit them.
 - **Low friction above all.** If it's too annoying to log, people stop logging. Dead app.
-- **Don't fake science.** IgE numbers and fat profiles are stored but not used in bucket math until the science supports it. Be honest about what the app does and doesn't know.
+- **Don't fake science.** IgE numbers and fat profiles are stored but not used in bucket math until the science supports it. The acid-blocker flag is tracked the same way — stored, not yet a bucket-math multiplier. Be honest about what the app does and doesn't know.
 
 ---
 
 ## Near-Term Roadmap (post-current session)
 
 - Pattern detection: "You've reported GI symptoms 4 of the last 5 times your load exceeded 50%"
-- Apollo-inspired UI polish: spring animations, micro-interactions, satisfying tap feedback
 - Demographic profile questions for research dataset
 - Google sign-in option (easier for less tech-savvy users)
 - Deploy to Firebase Hosting for first friend beta

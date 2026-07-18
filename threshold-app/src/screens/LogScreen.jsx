@@ -3,9 +3,13 @@ import { P } from '../data/palette';
 import { TRIGGERS, LOG_CATEGORIES } from '../data/triggers';
 import TileModal from '../components/TileModal';
 import ScrollFade from '../components/ScrollFade';
+import TickBiteModal from '../components/TickBiteModal';
+import Toast from '../components/Toast';
 
-export default function LogScreen({ onAdd, onRemove, loggedItems, onBack }) {
+export default function LogScreen({ onAdd, onRemove, loggedItems, onBack, onAddTickBite, onGoToProfile }) {
   const [modal, setModal] = useState(null);
+  const [tickModal, setTickModal] = useState(false);
+  const [nudge, setNudge] = useState(false);
 
   const handleTileTap = (trigger) => {
     setModal(trigger);
@@ -21,8 +25,14 @@ export default function LogScreen({ onAdd, onRemove, loggedItems, onBack }) {
     setModal(null);
   };
 
+  const handleTickBiteConfirm = async (data) => {
+    await onAddTickBite(data);
+    setTickModal(false);
+    setNudge(true);
+  };
+
   return (
-    <div>
+    <div style={{ animation: 'screenFadeIn 0.28s ease' }}>
       {modal && (
         <TileModal
           trigger={modal}
@@ -32,6 +42,10 @@ export default function LogScreen({ onAdd, onRemove, loggedItems, onBack }) {
           onRemove={handleRemoveFromModal}
           onClose={() => setModal(null)}
         />
+      )}
+
+      {tickModal && (
+        <TickBiteModal variant="today" onConfirm={handleTickBiteConfirm} onClose={() => setTickModal(false)} />
       )}
 
       <div style={{ padding: '16px 20px 0', display: 'flex', alignItems: 'center', justifyContent: 'space-between', marginBottom: 4 }}>
@@ -61,7 +75,7 @@ export default function LogScreen({ onAdd, onRemove, loggedItems, onBack }) {
       </div>
 
       <ScrollFade />
-      <div style={{ padding: '12px 20px 100px' }}>
+      <div style={{ padding: '12px 20px calc(90px + env(safe-area-inset-bottom))' }}>
         {LOG_CATEGORIES.map(cat => {
           const items = TRIGGERS.filter(t => t.cat === cat.key);
           return (
@@ -112,7 +126,50 @@ export default function LogScreen({ onAdd, onRemove, loggedItems, onBack }) {
             </div>
           );
         })}
+
+        <button
+          onClick={() => setTickModal(true)}
+          style={{
+            width: '100%', padding: '13px',
+            background: 'transparent', border: `1.5px dashed ${P.border}`,
+            borderRadius: 14, cursor: 'pointer',
+            fontSize: 13, color: P.textLight,
+            fontFamily: "'DM Sans', sans-serif", fontWeight: 500,
+          }}
+        >
+          🕷️ Log a tick bite
+        </button>
       </div>
+
+      {nudge && (
+        <Toast onDismiss={() => setNudge(false)} showDismiss={false}>
+          <p style={{ margin: '0 0 8px', fontSize: 13, color: P.textDark, lineHeight: 1.5, fontFamily: "'DM Sans', sans-serif" }}>
+            A tick bite can shift your baseline. Whenever you're ready, you can revisit your threshold lines.
+          </p>
+          <div style={{ display: 'flex', gap: 8 }}>
+            <button
+              onClick={() => { setNudge(false); onGoToProfile(); }}
+              style={{
+                padding: '8px 14px', background: P.brown, color: 'white',
+                border: 'none', borderRadius: 20, fontSize: 12, fontWeight: 600,
+                cursor: 'pointer', fontFamily: "'DM Sans', sans-serif",
+              }}
+            >
+              Review thresholds
+            </button>
+            <button
+              onClick={() => setNudge(false)}
+              style={{
+                padding: '8px 14px', background: 'transparent', color: P.textMid,
+                border: `1px solid ${P.border}`, borderRadius: 20, fontSize: 12,
+                cursor: 'pointer', fontFamily: "'DM Sans', sans-serif",
+              }}
+            >
+              Not now
+            </button>
+          </div>
+        </Toast>
+      )}
     </div>
   );
 }

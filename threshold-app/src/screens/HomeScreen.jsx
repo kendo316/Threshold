@@ -1,14 +1,17 @@
 import { useState } from 'react';
 import { P } from '../data/palette';
-import { DAY_CONTEXTS, SYMPTOMS } from '../data/triggers';
+import { SYMPTOMS } from '../data/triggers';
 import { bucketColor, bucketAdvice } from '../data/bucketUtils';
 import BucketGauge from '../components/BucketGauge';
+import Toast from '../components/Toast';
+import RobotEasterEgg from '../components/RobotEasterEgg';
 
-export default function HomeScreen({ logData, checkin, profile, onSetDayContext, onRemoveItem, setTab }) {
-  const { items = [], totalLoad = 0, dayContext } = logData;
+export default function HomeScreen({ logData, checkin, profile, onRemoveItem, onMarkMammalFree, setTab }) {
+  const { items = [], totalLoad = 0, mammalFree = false } = logData;
   const thresholds = profile?.thresholds;
-  const advice = bucketAdvice(totalLoad, dayContext);
+  const advice = bucketAdvice(totalLoad);
   const [removingId, setRemovingId] = useState(null);
+  const [celebrate, setCelebrate] = useState(null); // null | 'plain' | 'robot'
 
   const handleChipTap = (triggerId) => {
     if (removingId === triggerId) {
@@ -19,38 +22,17 @@ export default function HomeScreen({ logData, checkin, profile, onSetDayContext,
     }
   };
 
+  const handleMammalFreeToggle = async () => {
+    const next = !mammalFree;
+    await onMarkMammalFree(next);
+    if (next) setCelebrate(Math.random() < 0.12 ? 'robot' : 'plain');
+  };
+
   return (
-    <div>
+    <div style={{ animation: 'screenFadeIn 0.28s ease' }}>
       {/* Gauge */}
       <div style={{ padding: '28px 20px 20px', textAlign: 'center' }}>
         <BucketGauge pct={totalLoad} thresholds={thresholds} />
-      </div>
-
-      {/* Day context */}
-      <div style={{ padding: '0 20px 16px' }}>
-        <p style={{ fontSize: 12, color: P.textLight, marginBottom: 8, textAlign: 'center', fontWeight: 500 }}>
-          What kind of day is this?
-        </p>
-        <div style={{ display: 'flex', gap: 7, flexWrap: 'wrap', justifyContent: 'center' }}>
-          {DAY_CONTEXTS.map(ctx => (
-            <button
-              key={ctx.id}
-              onClick={() => onSetDayContext(dayContext === ctx.id ? null : ctx.id)}
-              style={{
-                padding: '7px 13px',
-                background: dayContext === ctx.id ? P.amberLight : P.card,
-                border: `1.5px solid ${dayContext === ctx.id ? P.amber : P.border}`,
-                borderRadius: 20, cursor: 'pointer',
-                fontSize: 13, color: dayContext === ctx.id ? P.brown : P.textMid,
-                fontFamily: "'DM Sans', sans-serif",
-                fontWeight: dayContext === ctx.id ? 600 : 400,
-                display: 'flex', alignItems: 'center', gap: 5,
-              }}
-            >
-              {ctx.emoji} {ctx.label}
-            </button>
-          ))}
-        </div>
       </div>
 
       {/* Advice banner */}
@@ -65,11 +47,6 @@ export default function HomeScreen({ logData, checkin, profile, onSetDayContext,
           <p style={{ margin: 0, fontSize: 14, color: P.textDark, lineHeight: 1.55, fontFamily: "'DM Sans', sans-serif" }}>
             {advice}
           </p>
-          {dayContext && totalLoad < 55 && (
-            <p style={{ margin: '6px 0 0', fontSize: 12, color: P.textLight, fontStyle: 'italic' }}>
-              {DAY_CONTEXTS.find(c => c.id === dayContext)?.tip}
-            </p>
-          )}
         </div>
       )}
 
@@ -179,6 +156,24 @@ export default function HomeScreen({ logData, checkin, profile, onSetDayContext,
         </button>
       </div>
 
+      {/* Mammal-free day — quiet, secondary, no pressure */}
+      <div style={{ padding: '2px 20px 12px' }}>
+        <button
+          onClick={handleMammalFreeToggle}
+          style={{
+            width: '100%', padding: '13px',
+            background: mammalFree ? P.greenLight : 'transparent',
+            color: mammalFree ? P.green : P.textLight,
+            border: `1.5px solid ${mammalFree ? '#A8CCB0' : P.border}`,
+            borderRadius: 14, fontSize: 14,
+            fontFamily: "'DM Sans', sans-serif", fontWeight: mammalFree ? 600 : 500,
+            cursor: 'pointer', transition: 'background 0.25s, border-color 0.25s, color 0.25s',
+          }}
+        >
+          {mammalFree ? '✓ Mammal-free day ✨' : 'Mark today mammal-free'}
+        </button>
+      </div>
+
       {/* Empty state */}
       {items.length === 0 && !checkin && (
         <div style={{ padding: '24px 20px', textAlign: 'center' }}>
@@ -186,6 +181,15 @@ export default function HomeScreen({ logData, checkin, profile, onSetDayContext,
             Start by logging what you've eaten today,<br />or check in with how you're feeling.
           </p>
         </div>
+      )}
+
+      {celebrate && (
+        <Toast tone="celebrate" autoHideMs={celebrate === 'robot' ? 4600 : 3000} onDismiss={() => setCelebrate(null)}>
+          <p style={{ margin: 0, fontSize: 15, fontWeight: 600, color: P.green, fontFamily: "'Lora', serif" }}>
+            Mammal-free day ✨
+          </p>
+          {celebrate === 'robot' && <RobotEasterEgg />}
+        </Toast>
       )}
     </div>
   );

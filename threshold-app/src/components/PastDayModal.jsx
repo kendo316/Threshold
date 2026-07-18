@@ -1,7 +1,7 @@
 import { useState } from 'react';
 import { P } from '../data/palette';
 import { TRIGGERS, SYMPTOMS } from '../data/triggers';
-import { bucketColor, bucketBg } from '../data/bucketUtils';
+import { bucketColor } from '../data/bucketUtils';
 import TileModal from './TileModal';
 
 function formatDateLabel(dateKey) {
@@ -10,11 +10,18 @@ function formatDateLabel(dateKey) {
   return date.toLocaleDateString('en-US', { weekday: 'long', month: 'short', day: 'numeric' });
 }
 
+function formatShortLabel(dateKey) {
+  const [y, m, d] = dateKey.split('-').map(Number);
+  const date = new Date(y, m - 1, d);
+  return date.toLocaleDateString('en-US', { weekday: 'short', month: 'short', day: 'numeric' });
+}
+
 export default function PastDayModal({ dateKey, logData, checkinData, onAppendItem, onClose }) {
   const [addModal, setAddModal] = useState(null);
   const items = logData?.items ?? [];
   const load = logData?.totalLoad ?? 0;
   const symptoms = checkinData?.symptoms ?? [];
+  const mammalFree = logData?.mammalFree ?? false;
 
   const handleAddConfirm = async (trigger, amount) => {
     await onAppendItem(dateKey, trigger, amount);
@@ -23,7 +30,6 @@ export default function PastDayModal({ dateKey, logData, checkinData, onAppendIt
 
   return (
     <>
-
       <div
         style={{
           position: 'fixed', inset: 0,
@@ -37,111 +43,127 @@ export default function PastDayModal({ dateKey, logData, checkinData, onAppendIt
           style={{
             background: P.bg,
             borderRadius: '24px 24px 0 0',
-            padding: '28px 24px 44px',
             width: '100%', maxWidth: 560,
-            maxHeight: '80vh',
-            overflowY: 'auto',
+            maxHeight: '88vh',
+            display: 'flex', flexDirection: 'column',
           }}
           onClick={e => e.stopPropagation()}
         >
-          <div style={{ display: 'flex', justifyContent: 'space-between', alignItems: 'flex-start', marginBottom: 20 }}>
-            <div>
-              <h3 style={{ margin: 0, fontFamily: "'Lora', serif", color: P.textDark, fontSize: 20 }}>
-                {formatDateLabel(dateKey)}
-              </h3>
-              <p style={{
-                margin: '4px 0 0', fontSize: 13,
-                color: bucketColor(load),
+          <div style={{ width: 36, height: 4, background: P.border, borderRadius: 2, margin: '10px auto 2px', flexShrink: 0 }} />
+
+          <div style={{ overflowY: 'auto', padding: '18px 24px 8px' }}>
+            <div style={{ display: 'flex', justifyContent: 'space-between', alignItems: 'flex-start', marginBottom: 20 }}>
+              <div>
+                <h3 style={{ margin: 0, fontFamily: "'Lora', serif", color: P.textDark, fontSize: 20 }}>
+                  {formatDateLabel(dateKey)}
+                </h3>
+                <p style={{
+                  margin: '4px 0 0', fontSize: 13,
+                  color: bucketColor(load),
+                  fontFamily: "'DM Sans', sans-serif", fontWeight: 600,
+                }}>
+                  {load}% bucket load
+                </p>
+              </div>
+              <button
+                onClick={onClose}
+                style={{ background: 'none', border: 'none', fontSize: 22, color: P.textLight, cursor: 'pointer', padding: 0, lineHeight: 1 }}
+              >
+                ✕
+              </button>
+            </div>
+
+            {mammalFree && (
+              <div style={{
+                display: 'inline-block', padding: '6px 12px', marginBottom: 16,
+                background: P.greenLight, border: '1.5px solid #A8CCB0',
+                borderRadius: 20, fontSize: 13, color: P.green,
                 fontFamily: "'DM Sans', sans-serif", fontWeight: 600,
               }}>
-                {load}% bucket load
+                🌱 Mammal-free day
+              </div>
+            )}
+
+            {items.length === 0 && (
+              <p style={{ fontSize: 14, color: P.textLight, fontFamily: "'DM Sans', sans-serif", marginBottom: 20 }}>
+                Nothing logged for this day.
               </p>
-            </div>
+            )}
+
+            {items.length > 0 && (
+              <div style={{ marginBottom: 20 }}>
+                <p style={{ fontSize: 11, color: P.textLight, letterSpacing: '0.1em', textTransform: 'uppercase', fontWeight: 600, marginBottom: 10, fontFamily: "'DM Sans', sans-serif" }}>
+                  Logged Items
+                </p>
+                <div style={{ display: 'flex', flexDirection: 'column', gap: 8 }}>
+                  {items.map((item, i) => (
+                    <div key={i} style={{
+                      display: 'flex', justifyContent: 'space-between', alignItems: 'center',
+                      padding: '10px 14px',
+                      background: P.card, border: `1.5px solid ${P.border}`,
+                      borderRadius: 13,
+                    }}>
+                      <span style={{ fontSize: 14, color: P.textDark, fontFamily: "'DM Sans', sans-serif" }}>
+                        {item.label}
+                        <span style={{ fontSize: 11, color: P.textLight, marginLeft: 6, textTransform: 'capitalize' }}>
+                          ({item.amount})
+                        </span>
+                      </span>
+                      <span style={{ fontSize: 13, fontWeight: 700, color: bucketColor(item.effectiveLoad * 3), fontFamily: "'DM Sans', sans-serif" }}>
+                        +{item.effectiveLoad}%
+                      </span>
+                    </div>
+                  ))}
+                </div>
+              </div>
+            )}
+
+            {symptoms.length > 0 && (
+              <div style={{ marginBottom: 4 }}>
+                <p style={{ fontSize: 11, color: P.textLight, letterSpacing: '0.1em', textTransform: 'uppercase', fontWeight: 600, marginBottom: 10, fontFamily: "'DM Sans', sans-serif" }}>
+                  Next Morning Check-In
+                </p>
+                <div style={{ display: 'flex', flexWrap: 'wrap', gap: 7 }}>
+                  {symptoms.map(id => {
+                    const s = SYMPTOMS.find(x => x.id === id);
+                    return s ? (
+                      <div key={id} style={{
+                        padding: '7px 12px',
+                        background: id === 'fine' ? P.greenLight : P.orangeLight,
+                        border: `1.5px solid ${id === 'fine' ? '#A8CCB0' : '#E0A090'}`,
+                        borderRadius: 20, fontSize: 13,
+                        color: id === 'fine' ? P.green : P.orange,
+                        fontFamily: "'DM Sans', sans-serif",
+                      }}>
+                        {s.emoji} {s.label}
+                      </div>
+                    ) : null;
+                  })}
+                </div>
+              </div>
+            )}
+          </div>
+
+          <div style={{ padding: `10px 24px calc(20px + env(safe-area-inset-bottom))`, flexShrink: 0 }}>
             <button
-              onClick={onClose}
-              style={{ background: 'none', border: 'none', fontSize: 22, color: P.textLight, cursor: 'pointer', padding: 0, lineHeight: 1 }}
+              onClick={() => setAddModal('open')}
+              style={{
+                width: '100%', padding: '14px',
+                background: 'transparent',
+                border: `1.5px dashed ${P.border}`,
+                borderRadius: 14, cursor: 'pointer',
+                fontSize: 14, color: P.textLight,
+                fontFamily: "'DM Sans', sans-serif",
+                fontWeight: 500,
+              }}
             >
-              ✕
+              + Add something I forgot
             </button>
           </div>
 
-          {items.length === 0 && (
-            <p style={{ fontSize: 14, color: P.textLight, fontFamily: "'DM Sans', sans-serif", marginBottom: 20 }}>
-              Nothing logged for this day.
-            </p>
-          )}
-
-          {items.length > 0 && (
-            <div style={{ marginBottom: 20 }}>
-              <p style={{ fontSize: 11, color: P.textLight, letterSpacing: '0.1em', textTransform: 'uppercase', fontWeight: 600, marginBottom: 10, fontFamily: "'DM Sans', sans-serif" }}>
-                Logged Items
-              </p>
-              <div style={{ display: 'flex', flexDirection: 'column', gap: 8 }}>
-                {items.map((item, i) => (
-                  <div key={i} style={{
-                    display: 'flex', justifyContent: 'space-between', alignItems: 'center',
-                    padding: '10px 14px',
-                    background: P.card, border: `1.5px solid ${P.border}`,
-                    borderRadius: 13,
-                  }}>
-                    <span style={{ fontSize: 14, color: P.textDark, fontFamily: "'DM Sans', sans-serif" }}>
-                      {item.label}
-                      <span style={{ fontSize: 11, color: P.textLight, marginLeft: 6, textTransform: 'capitalize' }}>
-                        ({item.amount})
-                      </span>
-                    </span>
-                    <span style={{ fontSize: 13, fontWeight: 700, color: bucketColor(item.effectiveLoad * 3), fontFamily: "'DM Sans', sans-serif" }}>
-                      +{item.effectiveLoad}%
-                    </span>
-                  </div>
-                ))}
-              </div>
-            </div>
-          )}
-
-          {symptoms.length > 0 && (
-            <div style={{ marginBottom: 20 }}>
-              <p style={{ fontSize: 11, color: P.textLight, letterSpacing: '0.1em', textTransform: 'uppercase', fontWeight: 600, marginBottom: 10, fontFamily: "'DM Sans', sans-serif" }}>
-                Next Morning Check-In
-              </p>
-              <div style={{ display: 'flex', flexWrap: 'wrap', gap: 7 }}>
-                {symptoms.map(id => {
-                  const s = SYMPTOMS.find(x => x.id === id);
-                  return s ? (
-                    <div key={id} style={{
-                      padding: '7px 12px',
-                      background: id === 'fine' ? P.greenLight : P.orangeLight,
-                      border: `1.5px solid ${id === 'fine' ? '#A8CCB0' : '#E0A090'}`,
-                      borderRadius: 20, fontSize: 13,
-                      color: id === 'fine' ? P.green : P.orange,
-                      fontFamily: "'DM Sans', sans-serif",
-                    }}>
-                      {s.emoji} {s.label}
-                    </div>
-                  ) : null;
-                })}
-              </div>
-            </div>
-          )}
-
-          <button
-            onClick={() => setAddModal('open')}
-            style={{
-              width: '100%', padding: '14px',
-              background: 'transparent',
-              border: `1.5px dashed ${P.border}`,
-              borderRadius: 14, cursor: 'pointer',
-              fontSize: 14, color: P.textLight,
-              fontFamily: "'DM Sans', sans-serif",
-              fontWeight: 500,
-            }}
-          >
-            + Add something I forgot
-          </button>
-
           {addModal === 'open' && (
             <AddForgottenModal
-              loggedIds={items.map(i => i.triggerId)}
+              dayLabel={formatShortLabel(dateKey)}
               onAdd={handleAddConfirm}
               onClose={() => setAddModal(null)}
             />
@@ -152,7 +174,7 @@ export default function PastDayModal({ dateKey, logData, checkinData, onAppendIt
   );
 }
 
-function AddForgottenModal({ loggedIds, onAdd, onClose }) {
+function AddForgottenModal({ dayLabel, onAdd, onClose }) {
   const [selected, setSelected] = useState(null);
 
   return (
@@ -161,6 +183,8 @@ function AddForgottenModal({ loggedIds, onAdd, onClose }) {
         <TileModal
           trigger={selected}
           isLogged={false}
+          isToday={false}
+          dayLabel={dayLabel}
           zIndex={400}
           onConfirm={(trigger, amount) => { onAdd(trigger, amount); setSelected(null); }}
           onClose={() => setSelected(null)}
@@ -179,12 +203,13 @@ function AddForgottenModal({ loggedIds, onAdd, onClose }) {
           style={{
             background: P.bg,
             borderRadius: '24px 24px 0 0',
-            padding: '24px 20px 44px',
+            padding: `20px 20px calc(24px + env(safe-area-inset-bottom))`,
             width: '100%', maxWidth: 560,
-            maxHeight: '70vh', overflowY: 'auto',
+            maxHeight: '75vh', overflowY: 'auto',
           }}
           onClick={e => e.stopPropagation()}
         >
+          <div style={{ width: 36, height: 4, background: P.border, borderRadius: 2, margin: '0 auto 14px' }} />
           <div style={{ display: 'flex', justifyContent: 'space-between', alignItems: 'center', marginBottom: 16 }}>
             <h3 style={{ margin: 0, fontFamily: "'Lora', serif", color: P.textDark, fontSize: 18 }}>
               What did you forget?

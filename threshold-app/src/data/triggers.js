@@ -20,21 +20,23 @@ export const TRIGGERS = [
   { id: 'broth',    label: 'Bone Broth',    emoji: '🍲', cat: 'hidden',   load: 15, note: 'Beef and pork bone broth is a concentrated hidden source. Common in soups and gravies.' },
   { id: 'lard',     label: 'Lard/Tallow',  emoji: '🫙', cat: 'hidden',   load: 15, note: 'Used in baked goods, pie crusts, and some restaurant frying — rarely labeled clearly.' },
   { id: 'worcsauce',label: 'Worcestershire',emoji: '🍶', cat: 'hidden',   load: 6,  note: 'Traditional recipes contain anchovies (fish, safe) but some brands add beef extract — check labels.' },
-  { id: 'lanolin',  label: 'Lanolin',       emoji: '🧴', cat: 'hidden',   load: 5,  note: 'Sheep-derived ingredient in some lotions, lip balms, and nipple creams. Skin contact may contribute.' },
-  { id: 'supp',     label: 'Supplements',   emoji: '💊', cat: 'hidden',   load: 8,  note: 'Fish oil, collagen, and some vitamin capsules use bovine or porcine gelatin. Check "other ingredients."' },
+  { id: 'lanolin',  label: 'Lanolin',       emoji: '🧴', cat: 'hidden',   load: 5,  note: 'Sheep-derived ingredient in some lotions, lip balms, and nipple creams. Skin contact may contribute.', amountType: 'contact' },
+  { id: 'supp',     label: 'Supplements',   emoji: '💊', cat: 'hidden',   load: 8,  note: 'Fish oil, collagen, and some vitamin capsules use bovine or porcine gelatin. Check "other ingredients."', amountType: 'dose' },
 
   // Co-factors (these lower your ceiling — same food hits harder)
-  { id: 'alcohol',  label: 'Alcohol',       emoji: '🍷', cat: 'cofactor', load: 15, note: 'Lowers your reaction threshold directly. A drink before eating mammals significantly increases risk.' },
-  { id: 'nsaids',   label: 'Ibuprofen/NSAIDs', emoji: '💊', cat: 'cofactor', load: 20, note: 'Advil, Motrin, Aleve, aspirin, naproxen — one of the most significant AG cofactors. Many people don\'t realize this.' },
-  { id: 'heat',     label: 'Heat/Hot',      emoji: '🌡️', cat: 'cofactor', load: 13, note: 'Hot shower, sauna, sun exposure, fever. Core body temperature rise amplifies reactions.' },
-  { id: 'exercise', label: 'Exercise',      emoji: '🏃', cat: 'cofactor', load: 10, note: 'Vigorous activity, especially within hours of eating. Even a brisk walk can matter.' },
-  { id: 'illness',  label: 'Sick/Stress',   emoji: '🤒', cat: 'cofactor', load: 22, note: 'Active illness, poor sleep, and high emotional stress all lower your tolerance ceiling.' },
-  { id: 'fatigue',  label: 'Exhaustion',    emoji: '😴', cat: 'cofactor', load: 12, note: 'Chronic sleep debt or a single bad night can meaningfully reduce tolerance.' },
+  { id: 'alcohol',  label: 'Alcohol',       emoji: '🍷', cat: 'cofactor', load: 15, note: 'Alcohol can lower your reaction threshold, especially alongside mammalian food.', amountType: 'drinks' },
+  { id: 'nsaids',   label: 'Ibuprofen/NSAIDs', emoji: '💊', cat: 'cofactor', load: 20, note: 'Advil, Motrin, Aleve, aspirin, naproxen — one of the most significant AG cofactors. Many people don\'t realize this.', amountType: 'dose' },
+  { id: 'heat',     label: 'Heat/Hot',      emoji: '🌡️', cat: 'cofactor', load: 13, note: 'Hot shower, sauna, sun exposure, fever. Core body temperature rise amplifies reactions.', amountType: 'exposure' },
+  { id: 'exercise', label: 'Exercise',      emoji: '🏃', cat: 'cofactor', load: 10, note: 'Vigorous activity, especially within hours of eating. Even a brisk walk can matter.', amountType: 'intensity' },
+  { id: 'illness',  label: 'Sick/Stress',   emoji: '🤒', cat: 'cofactor', load: 22, note: 'Active illness, poor sleep, and high emotional stress all lower your tolerance ceiling.', amountType: 'severity' },
+  { id: 'fatigue',  label: 'Exhaustion',    emoji: '😴', cat: 'cofactor', load: 12, note: 'Chronic sleep debt or a single bad night can meaningfully reduce tolerance.', amountType: 'severity' },
 
-  // OTC Medicines
-  { id: 'gelcaps',  label: 'Gel Capsules',  emoji: '💉', cat: 'otc',      load: 10, note: 'Many OTC and prescription capsules use porcine or bovine gelatin shells. Ask your pharmacist.' },
-  { id: 'aspirin',  label: 'Aspirin',       emoji: '🔴', cat: 'otc',      load: 15, note: 'A significant AG cofactor like ibuprofen. Includes baby aspirin taken daily.' },
-  { id: 'antacid',  label: 'Some Antacids', emoji: '🫧', cat: 'otc',      load: 5,  note: 'A few antacid brands use gelatin coatings or bovine-derived calcium. Check inactive ingredients.' },
+  // Medications
+  { id: 'gelcaps',   label: 'Gel Capsules',        emoji: '💉', cat: 'otc', load: 10, note: 'Many OTC and prescription capsules use porcine or bovine gelatin shells. Ask your pharmacist.', amountType: 'dose' },
+  { id: 'aspirin',   label: 'Aspirin',             emoji: '🔴', cat: 'otc', load: 15, note: 'A significant AG cofactor like ibuprofen. Includes baby aspirin taken daily.', amountType: 'dose' },
+  { id: 'antihistamine', label: 'Daily Antihistamine', emoji: '🌼', cat: 'otc', load: 0, note: 'Allegra, Claritin, Zyrtec — a daily allergy medication, not a reaction to a specific exposure.', amountType: 'dose' },
+  { id: 'benadryl',  label: 'Benadryl',            emoji: '💊', cat: 'otc', load: 0, note: 'Taken reactively, during or after a reaction.', amountType: 'dose' },
+  { id: 'pepcid',    label: 'Pepcid/Famotidine',   emoji: '🫧', cat: 'otc', load: 0, note: 'An H2 blocker — often taken ahead of a riskier meal, or when nervous about incidental exposure. Reduces stomach acid, which may affect how alpha-gal is broken down.', amountType: 'dose', isAcidBlocker: true },
 ];
 
 export const SYMPTOMS = [
@@ -46,19 +48,50 @@ export const SYMPTOMS = [
   { id: 'tired',   label: 'Fatigue',      emoji: '😴' },
 ];
 
-export const DAY_CONTEXTS = [
-  { id: 'home',   label: 'Home Day',     emoji: '🏠', tip: 'Good day to test tolerance if you\'ve been curious.' },
-  { id: 'work',   label: 'Work Day',     emoji: '💼', tip: 'Stay aware — stress can lower your threshold.' },
-  { id: 'travel', label: 'Traveling',    emoji: '✈️', tip: 'Protect your bucket. Hidden sources everywhere.' },
-  { id: 'social', label: 'Social Plans', emoji: '🥂', tip: 'Plan ahead so you can enjoy yourself.' },
-];
-
 export const AMOUNT_MULTIPLIERS = { small: 0.5, moderate: 1, large: 1.5 };
+
+export const AMOUNT_LABELS = {
+  food: {
+    small:    { label: 'Small',    desc: 'a few bites or sips' },
+    moderate: { label: 'Moderate', desc: 'a normal serving' },
+    large:    { label: 'Large',    desc: 'a large portion or several servings' },
+  },
+  drinks: {
+    small:    { label: 'One drink',      desc: '' },
+    moderate: { label: 'A few drinks',   desc: '2-3' },
+    large:    { label: 'Several drinks', desc: '4 or more' },
+  },
+  dose: {
+    small:    { label: 'One dose',       desc: '' },
+    moderate: { label: 'Two doses',      desc: '' },
+    large:    { label: 'Multiple doses', desc: '3 or more' },
+  },
+  exposure: {
+    small:    { label: 'Brief exposure',    desc: 'a few minutes' },
+    moderate: { label: 'Extended exposure', desc: '15-30 minutes' },
+    large:    { label: 'Prolonged',         desc: 'sauna, hot yoga, fever' },
+  },
+  intensity: {
+    small:    { label: 'Light activity', desc: 'a walk, light chores' },
+    moderate: { label: 'Moderate',       desc: 'a workout' },
+    large:    { label: 'Intense',        desc: 'hard training' },
+  },
+  severity: {
+    small:    { label: 'Mild',     desc: '' },
+    moderate: { label: 'Moderate', desc: '' },
+    large:    { label: 'Severe',   desc: '' },
+  },
+  contact: {
+    small:    { label: 'Brief contact',    desc: '' },
+    moderate: { label: 'Regular use',      desc: '' },
+    large:    { label: 'Extended contact', desc: '' },
+  },
+};
 
 export const LOG_CATEGORIES = [
   { key: 'meat',     label: 'Meat & Mammal' },
   { key: 'dairy',    label: 'Dairy' },
   { key: 'hidden',   label: 'Hidden Sources' },
   { key: 'cofactor', label: 'Co-factors' },
-  { key: 'otc',      label: 'OTC Medicines' },
+  { key: 'otc',      label: 'Medications' },
 ];

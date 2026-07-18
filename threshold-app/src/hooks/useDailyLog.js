@@ -17,7 +17,7 @@ export function nextDayKey(dateKey) {
 }
 
 export function useDailyLog(uid) {
-  const [logData, setLogData] = useState({ items: [], totalLoad: 0, dayContext: null, notes: '' });
+  const [logData, setLogData] = useState({ items: [], totalLoad: 0, notes: '' });
   const [loading, setLoading] = useState(true);
   const date = localDateKey();
 
@@ -54,6 +54,7 @@ export function useDailyLog(uid) {
     const items = [...filteredItems, newItem];
     const totalLoad = Math.min(100, items.reduce((s, i) => s + i.effectiveLoad, 0));
     const updated = { ...logData, items, totalLoad };
+    if (trigger.isAcidBlocker) updated.acidBlockerToday = true;
     await saveLog(updated);
   };
 
@@ -64,10 +65,15 @@ export function useDailyLog(uid) {
     await saveLog(updated);
   };
 
-  const setDayContext = async (ctx) => {
-    const updated = { ...logData, dayContext: ctx };
+  const setMammalFree = async (value) => {
+    const updated = { ...logData, mammalFree: value };
     await saveLog(updated);
   };
 
-  return { logData, loading, addItem, removeItem, setDayContext, saveLog };
+  const setAcidBlockerToday = async (value) => {
+    const updated = { ...logData, acidBlockerToday: value };
+    await saveLog(updated);
+  };
+
+  return { logData, loading, addItem, removeItem, setMammalFree, setAcidBlockerToday, saveLog };
 }

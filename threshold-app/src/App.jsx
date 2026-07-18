@@ -4,6 +4,7 @@ import { useProfile } from './hooks/useProfile';
 import { useDailyLog } from './hooks/useDailyLog';
 import { useCheckin } from './hooks/useCheckin';
 import { useLogHistory } from './hooks/useLogHistory';
+import { useTickBites } from './hooks/useTickBites';
 import { P } from './data/palette';
 
 import AuthScreen from './screens/AuthScreen';
@@ -26,14 +27,25 @@ const NAV_TABS = [
 function AppShell() {
   const { currentUser } = useAuth();
   const { profile, loading: profileLoading, saveProfile } = useProfile(currentUser?.uid);
-  const { logData, loading: logLoading, addItem, removeItem, setDayContext } = useDailyLog(currentUser?.uid);
+  const { logData, loading: logLoading, addItem, removeItem, setMammalFree, setAcidBlockerToday } = useDailyLog(currentUser?.uid);
   const { checkin, loading: checkinLoading, saveCheckin } = useCheckin(currentUser?.uid);
-  const { history, checkinHistory, loading: historyLoading, dateKeys, appendItemToDate } = useLogHistory(currentUser?.uid, 30);
+  const { history, checkinHistory, dateKeys, appendItemToDate } = useLogHistory(currentUser?.uid, 30);
+  const { bites: tickBites, addBite: addTickBite } = useTickBites(currentUser?.uid);
   const [tab, setTab] = useState('home');
 
   useEffect(() => {
     if (currentUser?.uid) setTab('home');
   }, [currentUser?.uid]);
+
+  // Apply the "daily acid blocker" default once per fresh day, without overriding a day
+  // that's already been explicitly set (on or off).
+  useEffect(() => {
+    if (profileLoading || logLoading) return;
+    if (profile?.acidBlockerDefault && logData.acidBlockerToday === undefined) {
+      setAcidBlockerToday(true);
+    }
+    // eslint-disable-next-line react-hooks/exhaustive-deps
+  }, [profileLoading, logLoading, profile?.acidBlockerDefault, logData.acidBlockerToday]);
 
   if (!currentUser) return <AuthScreen />;
   if (profileLoading || logLoading || checkinLoading) return <LoadingScreen />;
@@ -64,9 +76,13 @@ function AppShell() {
       <style>{`
         @import url('https://fonts.googleapis.com/css2?family=Lora:wght@600;700&family=DM+Sans:wght@400;500;600&display=swap');
         * { box-sizing: border-box; }
-        button { transition: opacity 0.15s; }
-        button:active { opacity: 0.75; }
+        button { transition: opacity 0.15s, transform 0.15s; }
+        button:active { opacity: 0.75; transform: scale(0.97); }
         input[type=range] { cursor: pointer; }
+        @keyframes screenFadeIn {
+          from { opacity: 0; transform: translateY(4px); }
+          to   { opacity: 1; transform: translateY(0); }
+        }
       `}</style>
 
       {/* Header */}
@@ -109,14 +125,14 @@ function AppShell() {
       </div>
 
       {/* Screens */}
-      <div style={{ paddingBottom: 80 }}>
+      <div style={{ paddingBottom: 'calc(80px + env(safe-area-inset-bottom))' }}>
         {tab === 'home' && (
           <HomeScreen
             logData={logData}
             checkin={checkin}
             profile={profile}
-            onSetDayContext={setDayContext}
             onRemoveItem={removeItem}
+            onMarkMammalFree={setMammalFree}
             setTab={setTab}
           />
         )}
@@ -126,6 +142,8 @@ function AppShell() {
             onRemove={removeItem}
             loggedItems={logData.items}
             onBack={() => setTab('home')}
+            onAddTickBite={addTickBite}
+            onGoToProfile={() => setTab('profile')}
           />
         )}
         {tab === 'checkin' && (
@@ -149,6 +167,9 @@ function AppShell() {
             profile={profile}
             onSave={saveProfile}
             onLabResults={() => setTab('lab')}
+            onBack={() => setTab('home')}
+            tickBites={tickBites}
+            onAddTickBite={addTickBite}
           />
         )}
         {tab === 'lab' && (
@@ -170,7 +191,7 @@ function AppShell() {
           width: '100%', maxWidth: 640,
           background: P.card,
           borderTop: `1px solid ${P.border}`,
-          display: 'flex', padding: '8px 0 24px',
+          display: 'flex', padding: '8px 0 calc(14px + env(safe-area-inset-bottom))',
           zIndex: 50,
         }}>
           {NAV_TABS.map(t => (

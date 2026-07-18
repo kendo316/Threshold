@@ -52,7 +52,7 @@ export default function DateStrip({ history, checkinHistory, todayCheckin, appen
           if (isToday) {
             return (
               <span key={dateKey} style={{
-                padding: '5px 12px',
+                padding: '9px 14px',
                 background: P.brown, color: 'white',
                 borderRadius: 20, fontSize: 11,
                 fontFamily: "'DM Sans', sans-serif", fontWeight: 600,
@@ -65,7 +65,7 @@ export default function DateStrip({ history, checkinHistory, todayCheckin, appen
 
           return (
             <button key={dateKey} onClick={() => setModalDate(dateKey)} style={{
-              padding: '5px 10px',
+              padding: '9px 12px',
               background: hadReaction ? P.orangeLight : P.bg,
               border: `1px solid ${hadReaction ? '#E0A090' : P.border}`,
               borderRadius: 20, cursor: 'pointer',

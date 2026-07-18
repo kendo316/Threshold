@@ -11,7 +11,7 @@ export default function CheckInScreen({ onComplete, onBack, existingCheckin }) {
     : selected.length > 0 ? 1 : 0;
 
   return (
-    <div style={{ padding: '16px 20px 100px' }}>
+    <div style={{ padding: '16px 20px calc(100px + env(safe-area-inset-bottom))', animation: 'screenFadeIn 0.28s ease' }}>
       <div style={{ display: 'flex', alignItems: 'center', gap: 12, marginBottom: 20 }}>
         <button
           onClick={onBack}

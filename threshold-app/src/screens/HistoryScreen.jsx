@@ -35,7 +35,7 @@ export default function HistoryScreen({ history, checkinHistory, dateKeys, onApp
   const activeDays = dateKeys.filter(k => history[k]);
 
   return (
-    <div style={{ padding: '20px 20px 100px', fontFamily: "'DM Sans', sans-serif" }}>
+    <div style={{ padding: '20px 20px calc(100px + env(safe-area-inset-bottom))', fontFamily: "'DM Sans', sans-serif", animation: 'screenFadeIn 0.28s ease' }}>
       <ScrollFade />
       <h2 style={{ margin: '0 0 4px', fontFamily: "'Lora', serif", color: P.textDark, fontSize: 22 }}>
         History
@@ -81,8 +81,9 @@ export default function HistoryScreen({ history, checkinHistory, dateKeys, onApp
                 {/* Eat row */}
                 <div style={{ display: 'flex', justifyContent: 'space-between', alignItems: 'flex-start', marginBottom: 6 }}>
                   <div>
-                    <span style={{ fontSize: 14, fontWeight: 600, color: P.textDark, display: 'block', fontFamily: "'DM Sans', sans-serif" }}>
+                    <span style={{ fontSize: 14, fontWeight: 600, color: P.textDark, display: 'flex', alignItems: 'center', gap: 6, fontFamily: "'DM Sans', sans-serif" }}>
                       {formatDateLabel(dateKey)}
+                      {log?.mammalFree && <span title="Mammal-free day" style={{ fontSize: 12 }}>🌱</span>}
                     </span>
                     <span style={{ fontSize: 12, color: P.textLight, fontFamily: "'DM Sans', sans-serif" }}>
                       {itemCount} item{itemCount !== 1 ? 's' : ''} logged

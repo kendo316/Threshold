@@ -32,7 +32,7 @@ export default function LabResultsScreen({ labResults, onSave, onBack }) {
   };
 
   return (
-    <div style={{ padding: '16px 20px 100px', fontFamily: "'DM Sans', sans-serif" }}>
+    <div style={{ padding: '16px 20px calc(100px + env(safe-area-inset-bottom))', fontFamily: "'DM Sans', sans-serif", animation: 'screenFadeIn 0.28s ease' }}>
       <div style={{ display: 'flex', alignItems: 'center', gap: 12, marginBottom: 20 }}>
         <button
           onClick={onBack}

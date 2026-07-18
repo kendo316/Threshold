@@ -1,7 +1,22 @@
 import { useState } from 'react';
 import { P } from '../data/palette';
 
-const STEPS = ['disclaimer', 'profile', 'thresholds'];
+function SliderRow({ label, value, color, onChange }) {
+  return (
+    <div style={{ marginBottom: 20 }}>
+      <div style={{ display: 'flex', justifyContent: 'space-between', marginBottom: 8 }}>
+        <span style={{ fontSize: 14, color: P.textDark, fontWeight: 500 }}>{label}</span>
+        <span style={{ fontSize: 14, color, fontWeight: 700 }}>{value}%</span>
+      </div>
+      <input
+        type="range" min={10} max={100} step={5}
+        value={value}
+        onChange={e => onChange(Number(e.target.value))}
+        style={{ width: '100%', accentColor: color }}
+      />
+    </div>
+  );
+}
 
 export default function OnboardingScreen({ onComplete }) {
   const [step, setStep] = useState('disclaimer');
@@ -36,20 +51,7 @@ export default function OnboardingScreen({ onComplete }) {
     });
   };
 
-  const SliderRow = ({ label, key2, color }) => (
-    <div style={{ marginBottom: 20 }}>
-      <div style={{ display: 'flex', justifyContent: 'space-between', marginBottom: 8 }}>
-        <span style={{ fontSize: 14, color: P.textDark, fontWeight: 500 }}>{label}</span>
-        <span style={{ fontSize: 14, color, fontWeight: 700 }}>{thresholds[key2]}%</span>
-      </div>
-      <input
-        type="range" min={10} max={100} step={5}
-        value={thresholds[key2]}
-        onChange={e => setThresholds(prev => ({ ...prev, [key2]: Number(e.target.value) }))}
-        style={{ width: '100%', accentColor: color }}
-      />
-    </div>
-  );
+  const setThreshold = (key2, val) => setThresholds(prev => ({ ...prev, [key2]: val }));
 
   return (
     <div style={{
@@ -148,9 +150,9 @@ export default function OnboardingScreen({ onComplete }) {
             Set your starting estimates. These will refine over time as the app learns from your logs.
           </p>
           <div style={{ flex: 1 }}>
-            <SliderRow label="GI symptoms typically start at…" key2="gi" color={P.amber} />
-            <SliderRow label="Hives / skin reactions start at…" key2="hives" color={P.orange} />
-            <SliderRow label="Severe reaction risk starts at…" key2="severe" color={P.red} />
+            <SliderRow label="GI symptoms typically start at…" value={thresholds.gi} color={P.amber} onChange={v => setThreshold('gi', v)} />
+            <SliderRow label="Hives / skin reactions start at…" value={thresholds.hives} color={P.orange} onChange={v => setThreshold('hives', v)} />
+            <SliderRow label="Severe reaction risk starts at…" value={thresholds.severe} color={P.red} onChange={v => setThreshold('severe', v)} />
             <div style={{
               background: P.amberLight,
               border: `1px solid ${P.amber}`,
