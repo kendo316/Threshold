@@ -2,8 +2,9 @@ import { localDateKey, nextDayKey } from '../utils/dates.js';
 
 // A day only counts as a "pair" when it has both a log AND a next-morning
 // check-in. Patterns stay silent until each comparison group has at least
-// MIN_GROUP pairs — a pattern shown too early is worse than none.
-const MIN_GROUP = 3;
+// MIN_GROUP pairs — with fewer, "2 of 3 vs 1 of 3" is a coin flip wearing
+// a lab coat, and a confident false pattern is worse than silence.
+const MIN_GROUP = 5;
 
 function rate(pairs) {
   return { sym: pairs.filter(p => p.symptomatic).length, total: pairs.length };

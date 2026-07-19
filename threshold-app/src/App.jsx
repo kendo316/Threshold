@@ -1,4 +1,4 @@
-import { useState, useEffect } from 'react';
+import { useState, useEffect, useRef } from 'react';
 import { AuthProvider, useAuth } from './contexts/AuthContext';
 import { useProfile } from './hooks/useProfile';
 import { useDailyLog } from './hooks/useDailyLog';
@@ -35,6 +35,7 @@ function AppShell() {
   const { bites: tickBites, addBite: addTickBite } = useTickBites(currentUser?.uid);
   const [tab, setTab] = useState('home');
   const [retrySave, setRetrySave] = useState(null);
+  const [retrySucceeded, setRetrySucceeded] = useState(false);
 
   useEffect(() => {
     if (currentUser?.uid) setTab('home');
@@ -43,16 +44,39 @@ function AppShell() {
   useEffect(() => onSaveError(retry => setRetrySave(() => retry)), []);
 
   // Apply the "daily acid blocker" default once per fresh day, without overriding a day
-  // that's already been explicitly set (on or off).
+  // that's already been explicitly set (on or off). One attempt per session — if the
+  // write fails and rolls back, retrying here would loop forever. It fails silently
+  // (reportFailure: false): a background default isn't the user's data, and they can
+  // still log Pepcid by hand.
+  const acidBlockerAttempted = useRef(false);
   useEffect(() => {
-    if (profileLoading || logLoading) return;
+    if (profileLoading || logLoading || acidBlockerAttempted.current) return;
     if (profile?.acidBlockerDefault && logData.acidBlockerToday === undefined) {
-      setAcidBlockerToday(true);
+      acidBlockerAttempted.current = true;
+      setAcidBlockerToday(true, { reportFailure: false });
     }
     // eslint-disable-next-line react-hooks/exhaustive-deps
   }, [profileLoading, logLoading, profile?.acidBlockerDefault, logData.acidBlockerToday]);
 
-  const saveErrorToast = retrySave ? (
+  // The moment after "Try again" works is the moment trust is rebuilt —
+  // close the loop with a brief confirmation instead of silence.
+  const handleRetry = async () => {
+    const retry = retrySave;
+    setRetrySave(null);
+    const ok = await retry();
+    if (ok !== false) {
+      setRetrySucceeded(true);
+    }
+    // On another failure the hook re-reports and the error toast re-arms itself.
+  };
+
+  const saveErrorToast = retrySucceeded ? (
+    <Toast tone="celebrate" autoHideMs={2000} onDismiss={() => setRetrySucceeded(false)}>
+      <p style={{ margin: 0, fontSize: 14, fontWeight: 600, color: P.green, fontFamily: "'DM Sans', sans-serif" }}>
+        ✓ Saved — all caught up
+      </p>
+    </Toast>
+  ) : retrySave ? (
     <Toast tone="error" showDismiss={false} onDismiss={() => setRetrySave(null)}>
       <p style={{ margin: '0 0 2px', fontSize: 14, fontWeight: 600, color: P.red, fontFamily: "'DM Sans', sans-serif" }}>
         That didn't save
@@ -62,7 +86,7 @@ function AppShell() {
       </p>
       <div style={{ display: 'flex', gap: 8 }}>
         <button
-          onClick={() => { const retry = retrySave; setRetrySave(null); retry(); }}
+          onClick={handleRetry}
           style={{
             padding: '8px 14px', background: P.brown, color: 'white',
             border: 'none', borderRadius: 20, fontSize: 12, fontWeight: 600,
@@ -219,7 +243,7 @@ function AppShell() {
         {tab === 'lab' && (
           <LabResultsScreen
             labResults={profile?.labResults}
-            onSave={(data) => saveProfile({ ...profile, labResults: data })}
+            onSave={(data) => saveProfile({ labResults: data })}
             onBack={() => setTab('profile')}
           />
         )}

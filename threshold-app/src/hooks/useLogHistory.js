@@ -1,4 +1,4 @@
-import { useState, useEffect, useCallback } from 'react';
+import { useState, useEffect, useCallback, useRef } from 'react';
 import { doc, getDoc, setDoc } from 'firebase/firestore';
 import { db } from '../firebase';
 import { localDateKey } from '../utils/dates';
@@ -18,6 +18,7 @@ export function useLogHistory(uid, days = 30) {
   const [history, setHistory] = useState({});
   const [checkinHistory, setCheckinHistory] = useState({});
   const [loading, setLoading] = useState(true);
+  const historyRef = useRef(history);
 
   const dateKeys = pastDateKeys(days);
 
@@ -37,7 +38,9 @@ export function useLogHistory(uid, days = 30) {
         Promise.all(checkinPromises),
       ]);
 
-      setHistory(Object.fromEntries(logEntries.filter(([, v]) => v !== null)));
+      const logs = Object.fromEntries(logEntries.filter(([, v]) => v !== null));
+      historyRef.current = logs;
+      setHistory(logs);
       setCheckinHistory(Object.fromEntries(checkinEntries.filter(([, v]) => v !== null)));
       setLoading(false);
     };
@@ -58,20 +61,23 @@ export function useLogHistory(uid, days = 30) {
       loggedAt: new Date().toISOString(),
     };
 
-    const existing = history[dateKey] ?? { items: [], totalLoad: 0, notes: '' };
+    // Read from the ref, not closure state, so a retry after other
+    // successful appends builds on the current day, not a stale snapshot.
+    const existing = historyRef.current[dateKey] ?? { items: [], totalLoad: 0, notes: '' };
     const items = [...existing.items, newItem];
     const totalLoad = Math.min(100, items.reduce((s, i) => s + i.effectiveLoad, 0));
     const updated = { ...existing, items, totalLoad, userId: uid, date: dateKey };
 
     try {
       await setDoc(doc(db, 'users', uid, 'logs', dateKey), updated);
-      setHistory(prev => ({ ...prev, [dateKey]: updated }));
+      historyRef.current = { ...historyRef.current, [dateKey]: updated };
+      setHistory(historyRef.current);
       return true;
     } catch {
       reportSaveError(() => appendItem(dateKey, trigger, amount));
       return false;
     }
-  }, [uid, history]);
+  }, [uid]);
 
   return { history, checkinHistory, loading, dateKeys, appendItemToDate };
 }
