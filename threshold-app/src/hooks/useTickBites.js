@@ -1,7 +1,8 @@
 import { useState, useEffect } from 'react';
 import { collection, addDoc, getDocs, orderBy, query } from 'firebase/firestore';
 import { db } from '../firebase';
-import { localDateKey } from './useDailyLog';
+import { localDateKey } from '../utils/dates';
+import { reportSaveError } from '../utils/saveStatus';
 
 function fetchBites(uid) {
   const q = query(collection(db, 'users', uid, 'tickBites'), orderBy('date', 'desc'));
@@ -21,16 +22,22 @@ export function useTickBites(uid) {
   }, [uid]);
 
   const addBite = async (data) => {
-    await addDoc(collection(db, 'users', uid, 'tickBites'), {
-      date: data.date ?? localDateKey(),
-      region: data.region ?? null,
-      bodyLocation: data.bodyLocation ?? null,
-      attachmentDuration: data.attachmentDuration ?? null,
-      tickSize: data.tickSize ?? null,
-      loggedAt: new Date().toISOString(),
-    });
-    const list = await fetchBites(uid);
-    setBites(list);
+    try {
+      await addDoc(collection(db, 'users', uid, 'tickBites'), {
+        date: data.date ?? localDateKey(),
+        region: data.region ?? null,
+        bodyLocation: data.bodyLocation ?? null,
+        attachmentDuration: data.attachmentDuration ?? null,
+        tickSize: data.tickSize ?? null,
+        loggedAt: new Date().toISOString(),
+      });
+      const list = await fetchBites(uid);
+      setBites(list);
+      return true;
+    } catch {
+      reportSaveError(() => addBite(data));
+      return false;
+    }
   };
 
   return { bites, loading, addBite };

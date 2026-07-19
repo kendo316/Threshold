@@ -26,9 +26,9 @@ export default function LogScreen({ onAdd, onRemove, loggedItems, onBack, onAddT
   };
 
   const handleTickBiteConfirm = async (data) => {
-    await onAddTickBite(data);
+    const ok = await onAddTickBite(data);
     setTickModal(false);
-    setNudge(true);
+    if (ok !== false) setNudge(true);
   };
 
   return (

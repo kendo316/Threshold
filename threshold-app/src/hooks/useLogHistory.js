@@ -1,7 +1,8 @@
 import { useState, useEffect, useCallback } from 'react';
 import { doc, getDoc, setDoc } from 'firebase/firestore';
 import { db } from '../firebase';
-import { localDateKey } from './useDailyLog';
+import { localDateKey } from '../utils/dates';
+import { reportSaveError } from '../utils/saveStatus';
 
 function pastDateKeys(count) {
   const keys = [];
@@ -44,7 +45,7 @@ export function useLogHistory(uid, days = 30) {
     fetchAll();
   }, [uid]);
 
-  const appendItemToDate = useCallback(async (dateKey, trigger, amount) => {
+  const appendItemToDate = useCallback(async function appendItem(dateKey, trigger, amount) {
     const multipliers = { small: 0.5, moderate: 1, large: 1.5 };
     const effectiveLoad = Math.round(trigger.load * multipliers[amount]);
     const newItem = {
@@ -62,8 +63,14 @@ export function useLogHistory(uid, days = 30) {
     const totalLoad = Math.min(100, items.reduce((s, i) => s + i.effectiveLoad, 0));
     const updated = { ...existing, items, totalLoad, userId: uid, date: dateKey };
 
-    await setDoc(doc(db, 'users', uid, 'logs', dateKey), updated);
-    setHistory(prev => ({ ...prev, [dateKey]: updated }));
+    try {
+      await setDoc(doc(db, 'users', uid, 'logs', dateKey), updated);
+      setHistory(prev => ({ ...prev, [dateKey]: updated }));
+      return true;
+    } catch {
+      reportSaveError(() => appendItem(dateKey, trigger, amount));
+      return false;
+    }
   }, [uid, history]);
 
   return { history, checkinHistory, loading, dateKeys, appendItemToDate };

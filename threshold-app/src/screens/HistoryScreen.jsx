@@ -2,14 +2,56 @@ import { useState } from 'react';
 import { P } from '../data/palette';
 import { SYMPTOMS } from '../data/triggers';
 import { bucketColor } from '../data/bucketUtils';
+import { computePatterns } from '../data/patterns';
 import PastDayModal from '../components/PastDayModal';
 import ScrollFade from '../components/ScrollFade';
-import { nextDayKey, localDateKey } from '../hooks/useDailyLog';
+import { nextDayKey, localDateKey } from '../utils/dates';
 
 function formatDateLabel(dateKey) {
   const [y, m, d] = dateKey.split('-').map(Number);
   const date = new Date(y, m - 1, d);
   return date.toLocaleDateString('en-US', { weekday: 'short', month: 'short', day: 'numeric' });
+}
+
+function PatternsCard({ history, checkinHistory, todayCheckin, thresholds }) {
+  const { pairCount, insights } = computePatterns({ history, checkinHistory, todayCheckin, thresholds });
+  if (pairCount === 0) return null;
+
+  return (
+    <div style={{
+      background: P.card,
+      border: `1.5px solid ${P.border}`,
+      borderRadius: 14,
+      padding: '14px 16px',
+      marginBottom: 16,
+    }}>
+      <p style={{
+        margin: '0 0 2px', fontSize: 16, fontWeight: 600,
+        color: P.textDark, fontFamily: "'Lora', serif",
+      }}>
+        🧭 Patterns
+      </p>
+      <p style={{ margin: '0 0 12px', fontSize: 12, color: P.textLight }}>
+        From your own eat→feel pairs — nothing generic
+      </p>
+      {insights.length > 0 ? (
+        <div style={{ display: 'flex', flexDirection: 'column', gap: 10 }}>
+          {insights.map((ins, i) => (
+            <div key={i} style={{ display: 'flex', gap: 9, alignItems: 'flex-start' }}>
+              <span style={{ fontSize: 15, lineHeight: '20px' }}>{ins.emoji}</span>
+              <p style={{ margin: 0, fontSize: 13, color: P.textMid, lineHeight: 1.55 }}>
+                {ins.text}
+              </p>
+            </div>
+          ))}
+        </div>
+      ) : (
+        <p style={{ margin: 0, fontSize: 13, color: P.textMid, lineHeight: 1.55 }}>
+          {pairCount} eat→feel {pairCount === 1 ? 'pair' : 'pairs'} logged so far. Once a few more days pair up, your patterns will start to show here.
+        </p>
+      )}
+    </div>
+  );
 }
 
 function LoadBar({ pct }) {
@@ -21,7 +63,7 @@ function LoadBar({ pct }) {
   );
 }
 
-export default function HistoryScreen({ history, checkinHistory, dateKeys, onAppendItem, todayCheckin }) {
+export default function HistoryScreen({ history, checkinHistory, dateKeys, onAppendItem, todayCheckin, profile }) {
   const [openDay, setOpenDay] = useState(null);
   const today = localDateKey();
 
@@ -43,6 +85,15 @@ export default function HistoryScreen({ history, checkinHistory, dateKeys, onApp
       <p style={{ margin: '0 0 20px', fontSize: 13, color: P.textLight }}>
         What you ate, and how you felt the next day
       </p>
+
+      {activeDays.length > 0 && (
+        <PatternsCard
+          history={history}
+          checkinHistory={checkinHistory}
+          todayCheckin={todayCheckin}
+          thresholds={profile?.thresholds}
+        />
+      )}
 
       {activeDays.length === 0 && (
         <div style={{ textAlign: 'center', padding: '40px 0' }}>

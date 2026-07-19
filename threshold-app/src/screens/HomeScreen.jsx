@@ -24,8 +24,8 @@ export default function HomeScreen({ logData, checkin, profile, onRemoveItem, on
 
   const handleMammalFreeToggle = async () => {
     const next = !mammalFree;
-    await onMarkMammalFree(next);
-    if (next) setCelebrate(Math.random() < 0.12 ? 'robot' : 'plain');
+    const ok = await onMarkMammalFree(next);
+    if (next && ok !== false) setCelebrate(Math.random() < 0.12 ? 'robot' : 'plain');
   };
 
   return (

@@ -1,7 +1,8 @@
 import { useState, useEffect } from 'react';
 import { doc, getDoc, setDoc } from 'firebase/firestore';
 import { db } from '../firebase';
-import { localDateKey } from './useDailyLog';
+import { localDateKey } from '../utils/dates';
+import { reportSaveError } from '../utils/saveStatus';
 
 export function useCheckin(uid) {
   const [checkin, setCheckin] = useState(null);
@@ -18,7 +19,7 @@ export function useCheckin(uid) {
   }, [uid, date]);
 
   const saveCheckin = async (symptoms, reactionSeverity) => {
-    const ref = doc(db, 'users', uid, 'checkins', date);
+    const previous = checkin;
     const data = {
       userId: uid,
       date,
@@ -26,8 +27,16 @@ export function useCheckin(uid) {
       reactionSeverity,
       loggedAt: new Date().toISOString(),
     };
-    await setDoc(ref, data);
     setCheckin(data);
+    try {
+      const ref = doc(db, 'users', uid, 'checkins', date);
+      await setDoc(ref, data);
+      return true;
+    } catch {
+      setCheckin(previous);
+      reportSaveError(() => saveCheckin(symptoms, reactionSeverity));
+      return false;
+    }
   };
 
   return { checkin, loading, saveCheckin };

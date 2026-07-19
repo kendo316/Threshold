@@ -2,7 +2,7 @@ import { useState } from 'react';
 import { P } from '../data/palette';
 import { bucketColor } from '../data/bucketUtils';
 import PastDayModal from './PastDayModal';
-import { localDateKey, nextDayKey } from '../hooks/useDailyLog';
+import { localDateKey, nextDayKey } from '../utils/dates';
 
 function pastKey(daysAgo) {
   const d = new Date();

@@ -22,8 +22,12 @@ export default function Toast({ children, onDismiss, autoHideMs, tone = 'warm', 
     // eslint-disable-next-line react-hooks/exhaustive-deps
   }, []);
 
-  const bg = tone === 'celebrate' ? P.greenLight : P.amberLight;
-  const borderColor = tone === 'celebrate' ? '#A8CCB0' : P.amber;
+  const tones = {
+    celebrate: { bg: P.greenLight, border: '#A8CCB0' },
+    warm:      { bg: P.amberLight, border: P.amber },
+    error:     { bg: P.redLight,   border: '#E0A0A0' },
+  };
+  const { bg, border: borderColor } = tones[tone] ?? tones.warm;
 
   return (
     <div

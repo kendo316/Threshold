@@ -1,6 +1,6 @@
 import { useState } from 'react';
 import { P } from '../data/palette';
-import { localDateKey } from '../hooks/useDailyLog';
+import { localDateKey } from '../utils/dates';
 
 const REGIONS = ['Northeast', 'Southeast', 'Midwest', 'Southwest', 'West', 'Other'];
 const DURATIONS = [

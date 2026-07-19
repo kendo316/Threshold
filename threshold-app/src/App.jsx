@@ -5,7 +5,9 @@ import { useDailyLog } from './hooks/useDailyLog';
 import { useCheckin } from './hooks/useCheckin';
 import { useLogHistory } from './hooks/useLogHistory';
 import { useTickBites } from './hooks/useTickBites';
+import { onSaveError } from './utils/saveStatus';
 import { P } from './data/palette';
+import Toast from './components/Toast';
 
 import AuthScreen from './screens/AuthScreen';
 import OnboardingScreen from './screens/OnboardingScreen';
@@ -32,10 +34,13 @@ function AppShell() {
   const { history, checkinHistory, dateKeys, appendItemToDate } = useLogHistory(currentUser?.uid, 30);
   const { bites: tickBites, addBite: addTickBite } = useTickBites(currentUser?.uid);
   const [tab, setTab] = useState('home');
+  const [retrySave, setRetrySave] = useState(null);
 
   useEffect(() => {
     if (currentUser?.uid) setTab('home');
   }, [currentUser?.uid]);
+
+  useEffect(() => onSaveError(retry => setRetrySave(() => retry)), []);
 
   // Apply the "daily acid blocker" default once per fresh day, without overriding a day
   // that's already been explicitly set (on or off).
@@ -47,11 +52,49 @@ function AppShell() {
     // eslint-disable-next-line react-hooks/exhaustive-deps
   }, [profileLoading, logLoading, profile?.acidBlockerDefault, logData.acidBlockerToday]);
 
+  const saveErrorToast = retrySave ? (
+    <Toast tone="error" showDismiss={false} onDismiss={() => setRetrySave(null)}>
+      <p style={{ margin: '0 0 2px', fontSize: 14, fontWeight: 600, color: P.red, fontFamily: "'DM Sans', sans-serif" }}>
+        That didn't save
+      </p>
+      <p style={{ margin: '0 0 10px', fontSize: 13, color: P.textMid, lineHeight: 1.5, fontFamily: "'DM Sans', sans-serif" }}>
+        Check your connection — nothing was lost, it just needs another try.
+      </p>
+      <div style={{ display: 'flex', gap: 8 }}>
+        <button
+          onClick={() => { const retry = retrySave; setRetrySave(null); retry(); }}
+          style={{
+            padding: '8px 14px', background: P.brown, color: 'white',
+            border: 'none', borderRadius: 20, fontSize: 12, fontWeight: 600,
+            cursor: 'pointer', fontFamily: "'DM Sans', sans-serif",
+          }}
+        >
+          Try again
+        </button>
+        <button
+          onClick={() => setRetrySave(null)}
+          style={{
+            padding: '8px 14px', background: 'transparent', color: P.textMid,
+            border: `1px solid ${P.border}`, borderRadius: 20, fontSize: 12,
+            cursor: 'pointer', fontFamily: "'DM Sans', sans-serif",
+          }}
+        >
+          Dismiss
+        </button>
+      </div>
+    </Toast>
+  ) : null;
+
   if (!currentUser) return <AuthScreen />;
   if (profileLoading || logLoading || checkinLoading) return <LoadingScreen />;
 
   if (!profile?.onboarded) {
-    return <OnboardingScreen onComplete={saveProfile} />;
+    return (
+      <>
+        {saveErrorToast}
+        <OnboardingScreen onComplete={saveProfile} />
+      </>
+    );
   }
 
   const handleAddItem = async (trigger, amount) => {
@@ -160,6 +203,7 @@ function AppShell() {
             dateKeys={dateKeys}
             onAppendItem={appendItemToDate}
             todayCheckin={checkin}
+            profile={profile}
           />
         )}
         {tab === 'profile' && (
@@ -175,9 +219,7 @@ function AppShell() {
         {tab === 'lab' && (
           <LabResultsScreen
             labResults={profile?.labResults}
-            onSave={async (data) => {
-              await saveProfile({ ...profile, labResults: data });
-            }}
+            onSave={(data) => saveProfile({ ...profile, labResults: data })}
             onBack={() => setTab('profile')}
           />
         )}
@@ -218,6 +260,8 @@ function AppShell() {
           ))}
         </div>
       )}
+
+      {saveErrorToast}
     </div>
   );
 }

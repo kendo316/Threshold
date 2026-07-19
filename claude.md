@@ -71,6 +71,9 @@ Nick has AGS. Building for himself and ~10 friends initially, with an eye toward
 - Shared `Toast` component, global button tap-scale feedback, screen fade-in transitions, safe-area-aware spacing throughout (modals, bottom nav, screen padding)
 - Scroll fade on Log and History screens; bottom sheets use an internal scroll region + sticky footer instead
 - Sign-out/sign-in routing bug fixed (tab resets to home on auth change)
+- Write reliability: every Firestore write is wrapped — daily log and check-in saves are optimistic with honest rollback, and any failed write surfaces a retryable "That didn't save" error toast (via `src/utils/saveStatus.js`); celebrations and "✓ Saved" states never fire on a failed write
+- Pattern detection: History shows a Patterns card computed from the user's own eat→feel pairs (`src/data/patterns.js`, pure + node-testable) — validates their personal GI line (symptom rate above vs below it) and co-factor days vs clean days; stays silent until each comparison group has ≥3 pairs, and shows a gentle pair-count progress line before that
+- Date utils live in `src/utils/dates.js` (firebase-free) so data-layer logic stays testable without Firebase init
 - Firestore security rules: users can only read/write their own documents
 - PWA manifest + service worker
 
@@ -247,7 +250,6 @@ users/{uid}/tickBites/{docId}
 
 ## Near-Term Roadmap (post-current session)
 
-- Pattern detection: "You've reported GI symptoms 4 of the last 5 times your load exceeded 50%"
 - Demographic profile questions for research dataset
 - Google sign-in option (easier for less tech-savvy users)
 - Deploy to Firebase Hosting for first friend beta

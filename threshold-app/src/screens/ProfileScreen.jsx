@@ -59,7 +59,7 @@ export default function ProfileScreen({ profile, onSave, onLabResults, onBack, t
 
   const handleSave = async () => {
     const thresholdsChanged = JSON.stringify(thresholds) !== JSON.stringify(profile?.thresholds);
-    await onSave({
+    const ok = await onSave({
       name: name.trim() || 'You',
       igeNumber: parseFloat(igeNumber) || null,
       thresholds,
@@ -67,6 +67,7 @@ export default function ProfileScreen({ profile, onSave, onLabResults, onBack, t
       acidBlockerDefault,
       standingMedications: { chips: medChips, other: otherMeds.trim() },
     });
+    if (ok === false) return;
     setSaved(true);
     setTimeout(() => setSaved(false), 2000);
   };

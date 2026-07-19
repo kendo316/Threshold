@@ -18,7 +18,8 @@ export default function LabResultsScreen({ labResults, onSave, onBack }) {
   const [saved, setSaved] = useState(false);
 
   const handleSave = async () => {
-    await onSave({ noResults, testDate, values });
+    const ok = await onSave({ noResults, testDate, values });
+    if (ok === false) return;
     setSaved(true);
     setTimeout(() => setSaved(false), 2000);
   };
