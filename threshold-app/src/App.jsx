@@ -5,6 +5,7 @@ import { useDailyLog } from './hooks/useDailyLog';
 import { useCheckin } from './hooks/useCheckin';
 import { useLogHistory } from './hooks/useLogHistory';
 import { useTickBites } from './hooks/useTickBites';
+import { useTodayKey } from './hooks/useTodayKey';
 import { onSaveError } from './utils/saveStatus';
 import { P } from './data/palette';
 import Toast from './components/Toast';
@@ -44,19 +45,20 @@ function AppShell() {
   useEffect(() => onSaveError(retry => setRetrySave(() => retry)), []);
 
   // Apply the "daily acid blocker" default once per fresh day, without overriding a day
-  // that's already been explicitly set (on or off). One attempt per session — if the
+  // that's already been explicitly set (on or off). One attempt per day — if the
   // write fails and rolls back, retrying here would loop forever. It fails silently
   // (reportFailure: false): a background default isn't the user's data, and they can
   // still log Pepcid by hand.
-  const acidBlockerAttempted = useRef(false);
+  const todayKey = useTodayKey();
+  const acidBlockerAttempted = useRef(null);
   useEffect(() => {
-    if (profileLoading || logLoading || acidBlockerAttempted.current) return;
+    if (profileLoading || logLoading || acidBlockerAttempted.current === todayKey) return;
     if (profile?.acidBlockerDefault && logData.acidBlockerToday === undefined) {
-      acidBlockerAttempted.current = true;
+      acidBlockerAttempted.current = todayKey;
       setAcidBlockerToday(true, { reportFailure: false });
     }
     // eslint-disable-next-line react-hooks/exhaustive-deps
-  }, [profileLoading, logLoading, profile?.acidBlockerDefault, logData.acidBlockerToday]);
+  }, [profileLoading, logLoading, profile?.acidBlockerDefault, logData.acidBlockerToday, todayKey]);
 
   // The moment after "Try again" works is the moment trust is rebuilt —
   // close the loop with a brief confirmation instead of silence.

@@ -3,6 +3,7 @@ import { doc, getDoc, setDoc } from 'firebase/firestore';
 import { db } from '../firebase';
 import { localDateKey } from '../utils/dates';
 import { reportSaveError } from '../utils/saveStatus';
+import { useTodayKey } from './useTodayKey';
 
 function pastDateKeys(count) {
   const keys = [];
@@ -19,9 +20,12 @@ export function useLogHistory(uid, days = 30) {
   const [checkinHistory, setCheckinHistory] = useState({});
   const [loading, setLoading] = useState(true);
   const historyRef = useRef(history);
+  const todayKey = useTodayKey();
 
   const dateKeys = pastDateKeys(days);
 
+  // Refetches when the day rolls over (app left open / resumed), so the
+  // 30-day window slides forward and "yesterday" is actually yesterday.
   useEffect(() => {
     if (!uid) return;
 
@@ -46,7 +50,8 @@ export function useLogHistory(uid, days = 30) {
     };
 
     fetchAll();
-  }, [uid]);
+    // eslint-disable-next-line react-hooks/exhaustive-deps
+  }, [uid, todayKey]);
 
   const appendItemToDate = useCallback(async function appendItem(dateKey, trigger, amount) {
     const multipliers = { small: 0.5, moderate: 1, large: 1.5 };

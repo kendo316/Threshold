@@ -74,6 +74,7 @@ Nick has AGS. Building for himself and ~10 friends initially, with an eye toward
 - Write reliability: every Firestore write is wrapped — daily log and check-in saves are optimistic with honest rollback, and any failed write surfaces a retryable "That didn't save" error toast (via `src/utils/saveStatus.js`); celebrations and "✓ Saved" states never fire on a failed write
 - Pattern detection: History shows a Patterns card computed from the user's own eat→feel pairs (`src/data/patterns.js`, pure + node-testable) — validates their personal GI line (symptom rate above vs below it) and co-factor days vs clean days; stays silent until each comparison group has ≥3 pairs, and shows a gentle pair-count progress line before that
 - Date utils live in `src/utils/dates.js` (firebase-free) so data-layer logic stays testable without Firebase init
+- Day-rollover safety: `useTodayKey` re-checks the calendar on resume/focus/pageshow (iOS PWAs resume frozen with yesterday's date), all daily hooks refetch when the day changes, and every date-keyed write stamps `localDateKey()` at WRITE time — a check-in or log entry can never land on the wrong day, even if the app sat open overnight or midnight passes mid-session. This protects the eat→feel pairing, which must never break.
 - Firestore security rules: users can only read/write their own documents
 - PWA manifest + service worker
 

@@ -3,14 +3,16 @@ import { doc, getDoc, setDoc } from 'firebase/firestore';
 import { db } from '../firebase';
 import { localDateKey } from '../utils/dates';
 import { reportSaveError } from '../utils/saveStatus';
+import { useTodayKey } from './useTodayKey';
 
 export function useCheckin(uid) {
   const [checkin, setCheckin] = useState(null);
   const [loading, setLoading] = useState(true);
-  const date = localDateKey();
+  const date = useTodayKey();
 
   useEffect(() => {
     if (!uid) return;
+    setCheckin(null);
     const ref = doc(db, 'users', uid, 'checkins', date);
     getDoc(ref).then(snap => {
       if (snap.exists()) setCheckin(snap.data());
@@ -18,23 +20,27 @@ export function useCheckin(uid) {
     });
   }, [uid, date]);
 
-  const saveCheckin = async (symptoms, reactionSeverity) => {
+  const saveCheckin = async function save(symptoms, reactionSeverity) {
+    // Stamp the date at write time — this is the write that anchors the
+    // eat→feel pairing, so it must key to the morning it actually happens,
+    // even if the app was left open since yesterday.
+    const writeDate = localDateKey();
     const previous = checkin;
     const data = {
       userId: uid,
-      date,
+      date: writeDate,
       symptoms,
       reactionSeverity,
       loggedAt: new Date().toISOString(),
     };
     setCheckin(data);
     try {
-      const ref = doc(db, 'users', uid, 'checkins', date);
+      const ref = doc(db, 'users', uid, 'checkins', writeDate);
       await setDoc(ref, data);
       return true;
     } catch {
       setCheckin(previous);
-      reportSaveError(() => saveCheckin(symptoms, reactionSeverity));
+      reportSaveError(() => save(symptoms, reactionSeverity));
       return false;
     }
   };

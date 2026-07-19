@@ -3,15 +3,26 @@ import { doc, getDoc, setDoc } from 'firebase/firestore';
 import { db } from '../firebase';
 import { localDateKey } from '../utils/dates';
 import { reportSaveError } from '../utils/saveStatus';
+import { useTodayKey } from './useTodayKey';
+
+const EMPTY_DAY = { items: [], totalLoad: 0, notes: '' };
 
 export function useDailyLog(uid) {
-  const [logData, setLogData] = useState({ items: [], totalLoad: 0, notes: '' });
+  const [logData, setLogData] = useState(EMPTY_DAY);
   const [loading, setLoading] = useState(true);
   const logDataRef = useRef(logData);
-  const date = localDateKey();
+  const date = useTodayKey();
+  // The day the in-memory data actually belongs to — compared against the
+  // calendar at write time, so a save can never land on the wrong day.
+  const loadedDateRef = useRef(date);
 
   useEffect(() => {
     if (!uid) return;
+    // Reset first: on a day rollover this clears yesterday's items instead
+    // of leaving them displayed against the new date while we fetch.
+    logDataRef.current = EMPTY_DAY;
+    loadedDateRef.current = date;
+    setLogData(EMPTY_DAY);
     const ref = doc(db, 'users', uid, 'logs', date);
     getDoc(ref).then(snap => {
       if (snap.exists()) {
@@ -27,13 +38,22 @@ export function useDailyLog(uid) {
   // saves re-applies the change on top of them instead of clobbering them.
   // Rollback only happens if nothing newer has been applied since.
   const applyChange = async function apply(updater, { reportFailure = true } = {}) {
+    // Stamp the date at write time. If midnight passed while the app was
+    // open (or a resume event hasn't landed yet), the in-memory data is
+    // yesterday's — start the new day clean rather than dragging it over.
+    const writeDate = localDateKey();
+    if (writeDate !== loadedDateRef.current) {
+      logDataRef.current = EMPTY_DAY;
+      loadedDateRef.current = writeDate;
+    }
+
     const previous = logDataRef.current;
     const updated = updater(previous);
     logDataRef.current = updated;
     setLogData(updated);
     try {
-      const ref = doc(db, 'users', uid, 'logs', date);
-      await setDoc(ref, { ...updated, userId: uid, date });
+      const ref = doc(db, 'users', uid, 'logs', writeDate);
+      await setDoc(ref, { ...updated, userId: uid, date: writeDate });
       return true;
     } catch {
       if (logDataRef.current === updated) {
