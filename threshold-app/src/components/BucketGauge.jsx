@@ -39,7 +39,12 @@ export default function BucketGauge({ pct, thresholds }) {
             strokeLinecap="round"
             strokeDasharray={`${dash} ${circ}`}
             transform="rotate(-90 88 88)"
-            style={{ transition: 'stroke-dasharray 0.7s cubic-bezier(.4,0,.2,1), stroke 0.4s ease' }}
+            style={{
+              transition: 'stroke-dasharray 0.7s cubic-bezier(.4,0,.2,1), stroke 0.4s ease, opacity 0.4s ease',
+              // A zero-length arc with a round cap still paints a dot — hide
+              // the arc entirely at 0% so an empty bucket looks empty.
+              opacity: pct > 0 ? 1 : 0,
+            }}
           />
           {thresholdTicks}
         </svg>

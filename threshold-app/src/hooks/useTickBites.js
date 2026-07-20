@@ -14,6 +14,10 @@ export function useTickBites(uid) {
   const [loading, setLoading] = useState(true);
 
   useEffect(() => {
+    // Reset first so a uid change never shows another account's bites.
+    // eslint-disable-next-line react-hooks/set-state-in-effect -- intentional privacy reset, same pattern as the other data hooks
+    setBites([]);
+    setLoading(true);
     if (!uid) return;
     fetchBites(uid).then(list => {
       setBites(list);

@@ -26,7 +26,12 @@ export function useLogHistory(uid, days = 30) {
 
   // Refetches when the day rolls over (app left open / resumed), so the
   // 30-day window slides forward and "yesterday" is actually yesterday.
+  // Resets first so a uid change never shows another account's history.
   useEffect(() => {
+    historyRef.current = {};
+    setHistory({});
+    setCheckinHistory({});
+    setLoading(true);
     if (!uid) return;
 
     const fetchAll = async () => {

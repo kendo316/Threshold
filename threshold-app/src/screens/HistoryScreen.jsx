@@ -96,10 +96,13 @@ export default function HistoryScreen({ history, checkinHistory, dateKeys, onApp
       )}
 
       {activeDays.length === 0 && (
-        <div style={{ textAlign: 'center', padding: '40px 0' }}>
-          <p style={{ fontSize: 36, marginBottom: 12 }}>📋</p>
-          <p style={{ fontSize: 14, color: P.textLight, lineHeight: 1.6 }}>
-            No history yet. Start logging<br />and it'll show up here.
+        <div style={{ textAlign: 'center', padding: '40px 24px' }}>
+          <p style={{ fontSize: 36, marginBottom: 12 }}>🌱</p>
+          <p style={{ fontSize: 15, color: P.textMid, lineHeight: 1.65, margin: '0 0 8px', fontWeight: 500 }}>
+            Your story starts today.
+          </p>
+          <p style={{ fontSize: 13, color: P.textLight, lineHeight: 1.65, margin: 0 }}>
+            Log what you eat, then check in each morning. Day by day, this page becomes a map of what your body is telling you.
           </p>
         </div>
       )}

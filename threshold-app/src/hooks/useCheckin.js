@@ -11,8 +11,10 @@ export function useCheckin(uid) {
   const date = useTodayKey();
 
   useEffect(() => {
-    if (!uid) return;
+    // Reset first so a uid change or day rollover never shows stale data.
     setCheckin(null);
+    setLoading(true);
+    if (!uid) return;
     const ref = doc(db, 'users', uid, 'checkins', date);
     getDoc(ref).then(snap => {
       if (snap.exists()) setCheckin(snap.data());

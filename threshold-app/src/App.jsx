@@ -37,9 +37,16 @@ function AppShell() {
   const [tab, setTab] = useState('home');
   const [retrySave, setRetrySave] = useState(null);
   const [retrySucceeded, setRetrySucceeded] = useState(false);
+  const acidBlockerAttempted = useRef(null);
 
+  // On any auth change: land on home, and clear everything bound to the
+  // previous account — a retry closure or per-day guard from one user must
+  // never carry into another's session.
   useEffect(() => {
     if (currentUser?.uid) setTab('home');
+    acidBlockerAttempted.current = null;
+    setRetrySave(null);
+    setRetrySucceeded(false);
   }, [currentUser?.uid]);
 
   useEffect(() => onSaveError(retry => setRetrySave(() => retry)), []);
@@ -50,7 +57,6 @@ function AppShell() {
   // (reportFailure: false): a background default isn't the user's data, and they can
   // still log Pepcid by hand.
   const todayKey = useTodayKey();
-  const acidBlockerAttempted = useRef(null);
   useEffect(() => {
     if (profileLoading || logLoading || acidBlockerAttempted.current === todayKey) return;
     if (profile?.acidBlockerDefault && logData.acidBlockerToday === undefined) {

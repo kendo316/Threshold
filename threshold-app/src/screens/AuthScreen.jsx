@@ -91,6 +91,7 @@ export default function AuthScreen() {
           <input
             type="email"
             placeholder="Email"
+            autoComplete="email"
             value={email}
             onChange={e => setEmail(e.target.value)}
             required
@@ -99,11 +100,17 @@ export default function AuthScreen() {
           <input
             type="password"
             placeholder="Password"
+            autoComplete={mode === 'signup' ? 'new-password' : 'current-password'}
             value={password}
             onChange={e => setPassword(e.target.value)}
             required
             style={inputStyle}
           />
+          {mode === 'signup' && (
+            <p style={{ margin: '-4px 0 0', fontSize: 12, color: P.textLight }}>
+              At least 6 characters.
+            </p>
+          )}
 
           {error && (
             <p style={{ margin: 0, fontSize: 13, color: P.red, lineHeight: 1.4 }}>{error}</p>
@@ -124,6 +131,12 @@ export default function AuthScreen() {
             {loading ? 'Please wait…' : mode === 'signin' ? 'Sign In' : 'Create Account'}
           </button>
         </form>
+
+        {mode === 'signup' && (
+          <p style={{ margin: '16px 0 0', fontSize: 12, color: P.textLight, textAlign: 'center', lineHeight: 1.5 }}>
+            Your account is private — only you can see what you log.
+          </p>
+        )}
 
         <p style={{ margin: '20px 0 0', fontSize: 14, color: P.textLight, textAlign: 'center' }}>
           {mode === 'signin' ? "Don't have an account? " : 'Already have an account? '}

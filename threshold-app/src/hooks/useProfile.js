@@ -9,6 +9,11 @@ export function useProfile(uid) {
   const profileRef = useRef(profile);
 
   useEffect(() => {
+    // Reset FIRST on every uid change: a new sign-in must never see the
+    // previous account's data, even for a moment.
+    profileRef.current = null;
+    setProfile(null);
+    setLoading(true);
     if (!uid) return;
     const ref = doc(db, 'users', uid, 'data', 'profile');
     getDoc(ref).then(snap => {

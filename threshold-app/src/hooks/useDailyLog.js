@@ -17,12 +17,14 @@ export function useDailyLog(uid) {
   const loadedDateRef = useRef(date);
 
   useEffect(() => {
-    if (!uid) return;
-    // Reset first: on a day rollover this clears yesterday's items instead
-    // of leaving them displayed against the new date while we fetch.
+    // Reset first: on a day rollover this clears yesterday's items, and on
+    // a uid change it guarantees a new sign-in never sees the previous
+    // account's log, even for a moment.
     logDataRef.current = EMPTY_DAY;
     loadedDateRef.current = date;
     setLogData(EMPTY_DAY);
+    setLoading(true);
+    if (!uid) return;
     const ref = doc(db, 'users', uid, 'logs', date);
     getDoc(ref).then(snap => {
       if (snap.exists()) {
