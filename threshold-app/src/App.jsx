@@ -32,7 +32,7 @@ function AppShell() {
   const { profile, loading: profileLoading, saveProfile } = useProfile(currentUser?.uid);
   const { logData, loading: logLoading, addItem, removeItem, setMammalFree, setAcidBlockerToday } = useDailyLog(currentUser?.uid);
   const { checkin, loading: checkinLoading, saveCheckin } = useCheckin(currentUser?.uid);
-  const { history, checkinHistory, dateKeys, appendItemToDate } = useLogHistory(currentUser?.uid, 30);
+  const { history, checkinHistory, dateKeys, appendItemToDate, setMammalFreeForDate } = useLogHistory(currentUser?.uid, 30);
   const { bites: tickBites, addBite: addTickBite } = useTickBites(currentUser?.uid);
   const [tab, setTab] = useState('home');
   const [retrySave, setRetrySave] = useState(null);
@@ -158,6 +158,7 @@ function AppShell() {
           from { opacity: 0; transform: translateY(4px); }
           to   { opacity: 1; transform: translateY(0); }
         }
+        .datestrip::-webkit-scrollbar { display: none; }
       `}</style>
 
       {/* Header */}
@@ -196,6 +197,7 @@ function AppShell() {
           checkinHistory={checkinHistory}
           todayCheckin={checkin}
           appendItemToDate={appendItemToDate}
+          setMammalFreeForDate={setMammalFreeForDate}
         />
       </div>
 
@@ -234,6 +236,7 @@ function AppShell() {
             checkinHistory={checkinHistory}
             dateKeys={dateKeys}
             onAppendItem={appendItemToDate}
+            onSetMammalFree={setMammalFreeForDate}
             todayCheckin={checkin}
             profile={profile}
           />

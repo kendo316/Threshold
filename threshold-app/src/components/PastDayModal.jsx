@@ -3,6 +3,7 @@ import { P } from '../data/palette';
 import { TRIGGERS, SYMPTOMS } from '../data/triggers';
 import { bucketColor } from '../data/bucketUtils';
 import TileModal from './TileModal';
+import MammalFreeCelebration from './MammalFreeCelebration';
 
 function formatDateLabel(dateKey) {
   const [y, m, d] = dateKey.split('-').map(Number);
@@ -16,8 +17,9 @@ function formatShortLabel(dateKey) {
   return date.toLocaleDateString('en-US', { weekday: 'short', month: 'short', day: 'numeric' });
 }
 
-export default function PastDayModal({ dateKey, logData, checkinData, onAppendItem, onClose }) {
+export default function PastDayModal({ dateKey, logData, checkinData, onAppendItem, onSetMammalFree, onClose }) {
   const [addModal, setAddModal] = useState(null);
+  const [celebrate, setCelebrate] = useState(false);
   const items = logData?.items ?? [];
   const load = logData?.totalLoad ?? 0;
   const symptoms = checkinData?.symptoms ?? [];
@@ -26,6 +28,12 @@ export default function PastDayModal({ dateKey, logData, checkinData, onAppendIt
   const handleAddConfirm = async (trigger, amount) => {
     await onAppendItem(dateKey, trigger, amount);
     setAddModal(null);
+  };
+
+  const handleMammalFreeToggle = async () => {
+    const next = !mammalFree;
+    const ok = await onSetMammalFree(dateKey, next);
+    if (next && ok !== false) setCelebrate(true);
   };
 
   return (
@@ -72,17 +80,6 @@ export default function PastDayModal({ dateKey, logData, checkinData, onAppendIt
                 ✕
               </button>
             </div>
-
-            {mammalFree && (
-              <div style={{
-                display: 'inline-block', padding: '6px 12px', marginBottom: 16,
-                background: P.greenLight, border: '1.5px solid #A8CCB0',
-                borderRadius: 20, fontSize: 13, color: P.green,
-                fontFamily: "'DM Sans', sans-serif", fontWeight: 600,
-              }}>
-                🌱 Mammal-free day
-              </div>
-            )}
 
             {items.length === 0 && (
               <p style={{ fontSize: 14, color: P.textLight, fontFamily: "'DM Sans', sans-serif", marginBottom: 20 }}>
@@ -144,7 +141,7 @@ export default function PastDayModal({ dateKey, logData, checkinData, onAppendIt
             )}
           </div>
 
-          <div style={{ padding: `10px 24px calc(20px + env(safe-area-inset-bottom))`, flexShrink: 0 }}>
+          <div style={{ padding: `10px 24px calc(20px + env(safe-area-inset-bottom))`, flexShrink: 0, display: 'flex', flexDirection: 'column', gap: 8 }}>
             <button
               onClick={() => setAddModal('open')}
               style={{
@@ -159,7 +156,25 @@ export default function PastDayModal({ dateKey, logData, checkinData, onAppendIt
             >
               + Add something I forgot
             </button>
+            {onSetMammalFree && (
+              <button
+                onClick={handleMammalFreeToggle}
+                style={{
+                  width: '100%', padding: '13px',
+                  background: mammalFree ? P.greenLight : 'transparent',
+                  color: mammalFree ? P.green : P.textLight,
+                  border: `1.5px solid ${mammalFree ? '#A8CCB0' : P.border}`,
+                  borderRadius: 14, fontSize: 14,
+                  fontFamily: "'DM Sans', sans-serif", fontWeight: mammalFree ? 600 : 500,
+                  cursor: 'pointer', transition: 'background 0.25s, border-color 0.25s, color 0.25s',
+                }}
+              >
+                {mammalFree ? '✓ Mammal-free day ✨' : 'Mark this day mammal-free'}
+              </button>
+            )}
           </div>
+
+          {celebrate && <MammalFreeCelebration onDismiss={() => setCelebrate(false)} />}
 
           {addModal === 'open' && (
             <AddForgottenModal

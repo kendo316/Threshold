@@ -89,5 +89,21 @@ export function useLogHistory(uid, days = 30) {
     }
   }, [uid]);
 
-  return { history, checkinHistory, loading, dateKeys, appendItemToDate };
+  // Same storage shape as today's mammal-free flag — lets users backfill
+  // days they forgot to mark. Reads from the ref so retries see current state.
+  const setMammalFreeForDate = useCallback(async function setFlag(dateKey, value) {
+    const existing = historyRef.current[dateKey] ?? { items: [], totalLoad: 0, notes: '' };
+    const updated = { ...existing, mammalFree: value, userId: uid, date: dateKey };
+    try {
+      await setDoc(doc(db, 'users', uid, 'logs', dateKey), updated);
+      historyRef.current = { ...historyRef.current, [dateKey]: updated };
+      setHistory(historyRef.current);
+      return true;
+    } catch {
+      reportSaveError(() => setFlag(dateKey, value));
+      return false;
+    }
+  }, [uid]);
+
+  return { history, checkinHistory, loading, dateKeys, appendItemToDate, setMammalFreeForDate };
 }

@@ -63,7 +63,7 @@ function LoadBar({ pct }) {
   );
 }
 
-export default function HistoryScreen({ history, checkinHistory, dateKeys, onAppendItem, todayCheckin, profile }) {
+export default function HistoryScreen({ history, checkinHistory, dateKeys, onAppendItem, onSetMammalFree, todayCheckin, profile }) {
   const [openDay, setOpenDay] = useState(null);
   const today = localDateKey();
 
@@ -199,6 +199,7 @@ export default function HistoryScreen({ history, checkinHistory, dateKeys, onApp
           logData={history[openDay]}
           checkinData={getFeelCheckin(openDay)}
           onAppendItem={onAppendItem}
+          onSetMammalFree={onSetMammalFree}
           onClose={() => setOpenDay(null)}
         />
       )}

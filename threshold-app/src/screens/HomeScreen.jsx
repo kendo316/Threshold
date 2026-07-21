@@ -3,15 +3,14 @@ import { P } from '../data/palette';
 import { SYMPTOMS } from '../data/triggers';
 import { bucketColor, bucketAdvice } from '../data/bucketUtils';
 import BucketGauge from '../components/BucketGauge';
-import Toast from '../components/Toast';
-import RobotEasterEgg from '../components/RobotEasterEgg';
+import MammalFreeCelebration from '../components/MammalFreeCelebration';
 
 export default function HomeScreen({ logData, checkin, profile, onRemoveItem, onMarkMammalFree, setTab }) {
   const { items = [], totalLoad = 0, mammalFree = false } = logData;
   const thresholds = profile?.thresholds;
   const advice = bucketAdvice(totalLoad);
   const [removingId, setRemovingId] = useState(null);
-  const [celebrate, setCelebrate] = useState(null); // null | 'plain' | 'robot'
+  const [celebrate, setCelebrate] = useState(false);
 
   const handleChipTap = (triggerId) => {
     if (removingId === triggerId) {
@@ -25,7 +24,7 @@ export default function HomeScreen({ logData, checkin, profile, onRemoveItem, on
   const handleMammalFreeToggle = async () => {
     const next = !mammalFree;
     const ok = await onMarkMammalFree(next);
-    if (next && ok !== false) setCelebrate(Math.random() < 0.12 ? 'robot' : 'plain');
+    if (next && ok !== false) setCelebrate(true);
   };
 
   return (
@@ -183,14 +182,7 @@ export default function HomeScreen({ logData, checkin, profile, onRemoveItem, on
         </div>
       )}
 
-      {celebrate && (
-        <Toast tone="celebrate" autoHideMs={celebrate === 'robot' ? 4600 : 3000} onDismiss={() => setCelebrate(null)}>
-          <p style={{ margin: 0, fontSize: 15, fontWeight: 600, color: P.green, fontFamily: "'Lora', serif" }}>
-            Mammal-free day ✨
-          </p>
-          {celebrate === 'robot' && <RobotEasterEgg />}
-        </Toast>
-      )}
+      {celebrate && <MammalFreeCelebration onDismiss={() => setCelebrate(false)} />}
     </div>
   );
 }
