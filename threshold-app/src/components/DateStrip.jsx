@@ -57,6 +57,7 @@ export default function DateStrip({ history, checkinHistory, todayCheckin, appen
           overflowX: 'auto',
           scrollbarWidth: 'none',
           WebkitOverflowScrolling: 'touch',
+          scrollSnapType: 'x proximity',
           margin: '0 -20px', padding: '0 20px',
         }}
       >
@@ -93,6 +94,7 @@ export default function DateStrip({ history, checkinHistory, todayCheckin, appen
               color: P.textMid,
               display: 'flex', alignItems: 'center', gap: 5,
               whiteSpace: 'nowrap', flexShrink: 0,
+              scrollSnapAlign: 'start',
             }}>
               <span>{chipLabel(dateKey)}</span>
               {load > 0 && (
@@ -102,7 +104,14 @@ export default function DateStrip({ history, checkinHistory, todayCheckin, appen
                   display: 'inline-block', flexShrink: 0,
                 }} />
               )}
-              {mammalFree && <span style={{ fontSize: 9 }}>🌱</span>}
+              {mammalFree && (
+                <span style={{
+                  fontSize: 9, display: 'inline-block',
+                  animation: 'sprout 0.35s cubic-bezier(.3,1.4,.4,1)',
+                }}>
+                  🌱
+                </span>
+              )}
               {hadReaction && <span style={{ fontSize: 9 }}>⚠</span>}
               {feltFine && <span style={{ fontSize: 9, color: P.green }}>✓</span>}
             </button>

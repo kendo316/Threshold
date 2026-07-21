@@ -159,6 +159,11 @@ function AppShell() {
           to   { opacity: 1; transform: translateY(0); }
         }
         .datestrip::-webkit-scrollbar { display: none; }
+        @keyframes sprout {
+          0%   { transform: scale(0); opacity: 0; }
+          60%  { transform: scale(1.25); }
+          100% { transform: scale(1); opacity: 1; }
+        }
       `}</style>
 
       {/* Header */}
