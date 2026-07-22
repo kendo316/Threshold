@@ -34,7 +34,7 @@ export const TRIGGERS = [
   // Medications
   { id: 'gelcaps',   label: 'Gel Capsules',        emoji: '💉', cat: 'otc', load: 10, note: 'Many OTC and prescription capsules use porcine or bovine gelatin shells. Ask your pharmacist.', amountType: 'dose' },
   { id: 'aspirin',   label: 'Aspirin',             emoji: '🔴', cat: 'otc', load: 15, note: 'A significant AG cofactor like ibuprofen. Includes baby aspirin taken daily.', amountType: 'dose' },
-  { id: 'antihistamine', label: 'Daily Antihistamine', emoji: '🌼', cat: 'otc', load: 0, note: 'Allegra, Claritin, Zyrtec — a daily allergy medication, not a reaction to a specific exposure.', amountType: 'dose' },
+  { id: 'antihistamine', label: 'Daily Antihistamine', emoji: '🌼', cat: 'otc', load: 0, note: 'Allegra, Claritin, Zyrtec — a daily allergy medication, not a reaction to a specific exposure.', amountType: 'dose', isAntihistamine: true },
   { id: 'benadryl',  label: 'Benadryl',            emoji: '💊', cat: 'otc', load: 0, note: 'Taken reactively, during or after a reaction.', amountType: 'dose' },
   { id: 'pepcid',    label: 'Pepcid/Famotidine',   emoji: '🫧', cat: 'otc', load: 0, note: 'An H2 blocker — often taken ahead of a riskier meal, or when nervous about incidental exposure. Reduces stomach acid, which may affect how alpha-gal is broken down.', amountType: 'dose', isAcidBlocker: true },
 ];

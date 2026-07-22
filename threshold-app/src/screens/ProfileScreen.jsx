@@ -3,11 +3,47 @@ import { P } from '../data/palette';
 import { useAuth } from '../contexts/AuthContext';
 import TickBiteModal from '../components/TickBiteModal';
 
-const MED_CHIPS = [
-  { id: 'escitalopram', label: 'Escitalopram (Lexapro)' },
-  { id: 'bupropion',    label: 'Bupropion (Wellbutrin)' },
-  { id: 'glp1',         label: 'GLP-1 (Ozempic/Wegovy/Zepbound/Mounjaro)' },
+// Suggestions to speed up entry — never fixed defaults. Anything added,
+// preset or custom, lives in the user's own list and is removable.
+const MED_SUGGESTIONS = [
+  'Escitalopram (Lexapro)',
+  'Bupropion (Wellbutrin)',
+  'GLP-1 (Ozempic/Wegovy/Zepbound/Mounjaro)',
 ];
+
+const ANTIHISTAMINE_OPTIONS = [
+  'Allegra (fexofenadine)',
+  'Claritin (loratadine)',
+  'Zyrtec (cetirizine)',
+];
+
+// Migrate the legacy { chips: string[], other: string } shape to the
+// user-driven { list: string[] } shape on read; writes always use `list`.
+const LEGACY_CHIP_LABELS = {
+  escitalopram: 'Escitalopram (Lexapro)',
+  bupropion: 'Bupropion (Wellbutrin)',
+  glp1: 'GLP-1 (Ozempic/Wegovy/Zepbound/Mounjaro)',
+};
+
+function normalizeMeds(sm) {
+  if (Array.isArray(sm?.list)) return sm.list;
+  const out = (sm?.chips ?? []).map(id => LEGACY_CHIP_LABELS[id] ?? id);
+  if (sm?.other?.trim()) out.push(sm.other.trim());
+  return out;
+}
+
+function labSummary(lab, formatDate) {
+  const values = lab?.values ?? {};
+  const hasValue = v => v !== undefined && v !== null && String(v).trim() !== '';
+  const anyValues = Object.values(values).some(hasValue);
+  const dateStr = lab?.testDate ? formatDate(lab.testDate) : null;
+  if (hasValue(values.alphaGalIge)) {
+    return `Alpha-Gal IgE ${values.alphaGalIge} kU/L${dateStr ? ` · ${dateStr}` : ''}`;
+  }
+  if (anyValues || dateStr) return `Entered ✓${dateStr ? ` · ${dateStr}` : ''}`;
+  if (lab?.noResults) return 'Not yet tested';
+  return 'Not entered →';
+}
 
 function formatDate(iso) {
   if (!iso) return null;
@@ -48,14 +84,33 @@ export default function ProfileScreen({ profile, onSave, onLabResults, onBack, t
   const [igeNumber, setIgeNumber] = useState(profile?.igeNumber ?? '');
   const [thresholds, setThresholds] = useState(profile?.thresholds ?? { gi: 55, hives: 80, severe: 95 });
   const [acidBlockerDefault, setAcidBlockerDefault] = useState(profile?.acidBlockerDefault ?? false);
-  const [medChips, setMedChips] = useState(profile?.standingMedications?.chips ?? []);
-  const [otherMeds, setOtherMeds] = useState(profile?.standingMedications?.other ?? '');
+  const [antihistamineDefault, setAntihistamineDefault] = useState(profile?.antihistamineDefault ?? false);
+  const [antihistamineChoice, setAntihistamineChoice] = useState(profile?.antihistamineChoice ?? '');
+  const [newMed, setNewMed] = useState('');
   const [saved, setSaved] = useState(false);
   const [tickModal, setTickModal] = useState(false);
 
-  const toggleMedChip = (id) => {
-    setMedChips(prev => prev.includes(id) ? prev.filter(x => x !== id) : [...prev, id]);
+  // Medications derive straight from the profile prop and every add/remove
+  // saves immediately — the old flow only persisted on "Save Profile", so
+  // a custom med typed and left behind was silently lost.
+  const meds = normalizeMeds(profile?.standingMedications);
+
+  const saveMeds = async (list) => {
+    await onSave({ standingMedications: { list } });
   };
+
+  const addMed = async (name0) => {
+    const trimmed = name0.trim();
+    if (!trimmed) return;
+    if (meds.some(m => m.toLowerCase() === trimmed.toLowerCase())) {
+      setNewMed('');
+      return;
+    }
+    await saveMeds([...meds, trimmed]);
+    setNewMed('');
+  };
+
+  const removeMed = (name0) => saveMeds(meds.filter(m => m !== name0));
 
   const handleSave = async () => {
     const thresholdsChanged = JSON.stringify(thresholds) !== JSON.stringify(profile?.thresholds);
@@ -65,7 +120,8 @@ export default function ProfileScreen({ profile, onSave, onLabResults, onBack, t
       thresholds,
       thresholdsUpdatedAt: thresholdsChanged ? new Date().toISOString() : (profile?.thresholdsUpdatedAt ?? null),
       acidBlockerDefault,
-      standingMedications: { chips: medChips, other: otherMeds.trim() },
+      antihistamineDefault,
+      antihistamineChoice: antihistamineChoice.trim(),
     });
     if (ok === false) return;
     setSaved(true);
@@ -157,45 +213,149 @@ export default function ProfileScreen({ profile, onSave, onLabResults, onBack, t
         <span style={{ fontSize: 20 }}>{acidBlockerDefault ? '✓' : '○'}</span>
         I take a daily acid blocker (e.g. Pepcid/Famotidine)
       </button>
-      <p style={{ fontSize: 12, color: P.textLight, lineHeight: 1.5, margin: '0 0 20px' }}>
+      <p style={{ fontSize: 12, color: P.textLight, lineHeight: 1.5, margin: '0 0 14px' }}>
         We'll mark Pepcid/Famotidine as taken by default each day — you can always remove it from a specific day's log.
+      </p>
+
+      <button
+        onClick={() => setAntihistamineDefault(v => !v)}
+        style={{
+          width: '100%', padding: '14px',
+          background: antihistamineDefault ? P.amberLight : P.card,
+          border: `2px solid ${antihistamineDefault ? P.amber : P.border}`,
+          borderRadius: 13, cursor: 'pointer',
+          fontSize: 14, color: antihistamineDefault ? P.brown : P.textMid,
+          fontFamily: "'DM Sans', sans-serif",
+          fontWeight: antihistamineDefault ? 600 : 400,
+          marginBottom: 10, textAlign: 'left',
+          display: 'flex', alignItems: 'center', gap: 10,
+        }}
+      >
+        <span style={{ fontSize: 20 }}>{antihistamineDefault ? '✓' : '○'}</span>
+        I take a daily allergy medication
+      </button>
+      {antihistamineDefault && (
+        <div style={{ marginBottom: 10, animation: 'rowIn 0.25s ease' }}>
+          <div style={{ display: 'flex', flexWrap: 'wrap', gap: 8, marginBottom: 8 }}>
+            {ANTIHISTAMINE_OPTIONS.map(opt => {
+              const on = antihistamineChoice === opt;
+              return (
+                <button
+                  key={opt}
+                  onClick={() => setAntihistamineChoice(on ? '' : opt)}
+                  style={{
+                    padding: '9px 13px',
+                    background: on ? P.amberLight : P.card,
+                    border: `1.5px solid ${on ? P.amber : P.border}`,
+                    borderRadius: 20, cursor: 'pointer',
+                    fontSize: 13, color: on ? P.brown : P.textMid,
+                    fontFamily: "'DM Sans', sans-serif",
+                    fontWeight: on ? 600 : 400,
+                  }}
+                >
+                  {opt}
+                </button>
+              );
+            })}
+          </div>
+          <input
+            type="text"
+            value={ANTIHISTAMINE_OPTIONS.includes(antihistamineChoice) ? '' : antihistamineChoice}
+            onChange={e => setAntihistamineChoice(e.target.value)}
+            placeholder="Or type another (optional)"
+            style={inputStyle}
+          />
+        </div>
+      )}
+      <p style={{ fontSize: 12, color: P.textLight, lineHeight: 1.5, margin: '0 0 20px' }}>
+        We'll mark it as taken by default each day — you can always remove it from a specific day's log.
       </p>
 
       <p style={{ fontSize: 13, color: P.textMid, fontWeight: 500, marginBottom: 10 }}>
         Standing daily medications
       </p>
       <p style={{ fontSize: 12, color: P.textLight, lineHeight: 1.5, margin: '0 0 12px' }}>
-        Ongoing medications you take regularly — set once, not something to log every day.
+        Ongoing medications you take regularly — set once, not something to log every day. Add anything by name; each one saves as you go.
       </p>
-      <div style={{ display: 'flex', flexWrap: 'wrap', gap: 8, marginBottom: 12 }}>
-        {MED_CHIPS.map(m => {
-          const on = medChips.includes(m.id);
-          return (
-            <button
-              key={m.id}
-              onClick={() => toggleMedChip(m.id)}
-              style={{
-                padding: '9px 13px',
-                background: on ? P.amberLight : P.card,
-                border: `1.5px solid ${on ? P.amber : P.border}`,
-                borderRadius: 20, cursor: 'pointer',
-                fontSize: 13, color: on ? P.brown : P.textMid,
-                fontFamily: "'DM Sans', sans-serif",
-                fontWeight: on ? 600 : 400,
-              }}
-            >
-              {m.label}
-            </button>
-          );
-        })}
-      </div>
-      <input
-        type="text"
-        value={otherMeds}
-        onChange={e => setOtherMeds(e.target.value)}
-        placeholder="Other medications (optional)"
-        style={{ ...inputStyle, marginBottom: 28 }}
-      />
+
+      {meds.length > 0 && (
+        <div style={{ display: 'flex', flexDirection: 'column', gap: 8, marginBottom: 12 }}>
+          {meds.map(m => (
+            <div key={m} style={{
+              display: 'flex', justifyContent: 'space-between', alignItems: 'center',
+              padding: '10px 8px 10px 14px',
+              background: P.card, border: `1.5px solid ${P.border}`,
+              borderRadius: 13, animation: 'rowIn 0.25s ease',
+            }}>
+              <span style={{ fontSize: 14, color: P.textDark }}>{m}</span>
+              <button
+                onClick={() => removeMed(m)}
+                aria-label={`Remove ${m}`}
+                style={{
+                  background: 'none', border: 'none', color: P.textLight,
+                  fontSize: 16, cursor: 'pointer', padding: '6px 10px', lineHeight: 1,
+                }}
+              >
+                ✕
+              </button>
+            </div>
+          ))}
+        </div>
+      )}
+
+      <form
+        onSubmit={e => { e.preventDefault(); addMed(newMed); }}
+        style={{ display: 'flex', gap: 8, marginBottom: 10 }}
+      >
+        <input
+          type="text"
+          value={newMed}
+          onChange={e => setNewMed(e.target.value)}
+          placeholder="Add a medication by name"
+          style={{ ...inputStyle, flex: 1 }}
+        />
+        <button
+          type="submit"
+          disabled={!newMed.trim()}
+          style={{
+            padding: '0 18px',
+            background: newMed.trim() ? P.brown : P.border,
+            color: 'white', border: 'none', borderRadius: 13,
+            fontSize: 14, fontFamily: "'DM Sans', sans-serif",
+            fontWeight: 600, cursor: newMed.trim() ? 'pointer' : 'default',
+            flexShrink: 0,
+          }}
+        >
+          Add
+        </button>
+      </form>
+
+      {MED_SUGGESTIONS.some(s => !meds.includes(s)) && (
+        <div style={{ marginBottom: 28 }}>
+          <p style={{ fontSize: 11, color: P.textLight, margin: '0 0 8px' }}>
+            Common ones — tap to add:
+          </p>
+          <div style={{ display: 'flex', flexWrap: 'wrap', gap: 8 }}>
+            {MED_SUGGESTIONS.filter(s => !meds.includes(s)).map(s => (
+              <button
+                key={s}
+                onClick={() => addMed(s)}
+                style={{
+                  padding: '8px 12px',
+                  background: 'transparent',
+                  border: `1.5px dashed ${P.border}`,
+                  borderRadius: 20, cursor: 'pointer',
+                  fontSize: 12, color: P.textLight,
+                  fontFamily: "'DM Sans', sans-serif",
+                }}
+              >
+                + {s}
+              </button>
+            ))}
+          </div>
+        </div>
+      )}
+      {!MED_SUGGESTIONS.some(s => !meds.includes(s)) && <div style={{ marginBottom: 18 }} />}
 
       <button
         onClick={handleSave}
@@ -224,8 +384,8 @@ export default function ProfileScreen({ profile, onSave, onLabResults, onBack, t
         }}
       >
         <span>🧪 Lab Results</span>
-        <span style={{ fontSize: 12, color: P.textLight }}>
-          {profile?.labResults?.noResults ? 'Not available' : profile?.labResults?.testDate ? `Tested ${profile.labResults.testDate}` : 'Not entered →'}
+        <span style={{ fontSize: 12, color: P.textLight, textAlign: 'right' }}>
+          {labSummary(profile?.labResults, formatDateKey)}
         </span>
       </button>
 

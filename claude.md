@@ -201,7 +201,9 @@ users/{uid}/data/profile
   thresholds: { gi: number, hives: number, severe: number },
   thresholdsUpdatedAt: string,      // ISO — set whenever thresholds actually change
   acidBlockerDefault: boolean,
-  standingMedications: { chips: string[], other: string },
+  antihistamineDefault: boolean,
+  antihistamineChoice: string,      // e.g. 'Allegra (fexofenadine)' or free text
+  standingMedications: { list: string[] },  // user-driven names; legacy {chips, other} normalized on read
   onboarded: boolean,
   createdAt: timestamp
 }
@@ -212,6 +214,7 @@ users/{uid}/logs/{YYYY-MM-DD}
   items: [...],              // see item structure above
   totalLoad: number,
   acidBlockerToday: boolean,
+  antihistamineToday: boolean,
   mammalFree: boolean,
   notes: string
 }

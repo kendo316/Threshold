@@ -85,6 +85,7 @@ export function useDailyLog(uid) {
     const totalLoad = Math.min(100, items.reduce((s, i) => s + i.effectiveLoad, 0));
     const updated = { ...current, items, totalLoad };
     if (trigger.isAcidBlocker) updated.acidBlockerToday = true;
+    if (trigger.isAntihistamine) updated.antihistamineToday = true;
     return updated;
   });
 
@@ -100,5 +101,8 @@ export function useDailyLog(uid) {
   const setAcidBlockerToday = (value, opts) =>
     applyChange(current => ({ ...current, acidBlockerToday: value }), opts);
 
-  return { logData, loading, addItem, removeItem, setMammalFree, setAcidBlockerToday };
+  const setAntihistamineToday = (value, opts) =>
+    applyChange(current => ({ ...current, antihistamineToday: value }), opts);
+
+  return { logData, loading, addItem, removeItem, setMammalFree, setAcidBlockerToday, setAntihistamineToday };
 }

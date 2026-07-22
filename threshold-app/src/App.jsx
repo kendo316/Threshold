@@ -30,41 +30,49 @@ const NAV_TABS = [
 function AppShell() {
   const { currentUser } = useAuth();
   const { profile, loading: profileLoading, saveProfile } = useProfile(currentUser?.uid);
-  const { logData, loading: logLoading, addItem, removeItem, setMammalFree, setAcidBlockerToday } = useDailyLog(currentUser?.uid);
+  const { logData, loading: logLoading, addItem, removeItem, setMammalFree, setAcidBlockerToday, setAntihistamineToday } = useDailyLog(currentUser?.uid);
   const { checkin, loading: checkinLoading, saveCheckin } = useCheckin(currentUser?.uid);
   const { history, checkinHistory, dateKeys, appendItemToDate, setMammalFreeForDate } = useLogHistory(currentUser?.uid, 30);
   const { bites: tickBites, addBite: addTickBite } = useTickBites(currentUser?.uid);
   const [tab, setTab] = useState('home');
   const [retrySave, setRetrySave] = useState(null);
   const [retrySucceeded, setRetrySucceeded] = useState(false);
-  const acidBlockerAttempted = useRef(null);
+  const dailyDefaultsAttempted = useRef(null);
 
   // On any auth change: land on home, and clear everything bound to the
   // previous account — a retry closure or per-day guard from one user must
   // never carry into another's session.
   useEffect(() => {
     if (currentUser?.uid) setTab('home');
-    acidBlockerAttempted.current = null;
+    dailyDefaultsAttempted.current = null;
     setRetrySave(null);
     setRetrySucceeded(false);
   }, [currentUser?.uid]);
 
   useEffect(() => onSaveError(retry => setRetrySave(() => retry)), []);
 
-  // Apply the "daily acid blocker" default once per fresh day, without overriding a day
-  // that's already been explicitly set (on or off). One attempt per day — if the
-  // write fails and rolls back, retrying here would loop forever. It fails silently
-  // (reportFailure: false): a background default isn't the user's data, and they can
-  // still log Pepcid by hand.
+  // Apply the daily medication defaults (acid blocker, allergy medication)
+  // once per fresh day, without overriding a day that's already been
+  // explicitly set (on or off). One attempt per day — if a write fails and
+  // rolls back, retrying here would loop forever. They fail silently
+  // (reportFailure: false): a background default isn't the user's data, and
+  // they can still log the tile by hand.
   const todayKey = useTodayKey();
   useEffect(() => {
-    if (profileLoading || logLoading || acidBlockerAttempted.current === todayKey) return;
-    if (profile?.acidBlockerDefault && logData.acidBlockerToday === undefined) {
-      acidBlockerAttempted.current = todayKey;
-      setAcidBlockerToday(true, { reportFailure: false });
+    if (profileLoading || logLoading || dailyDefaultsAttempted.current === todayKey) return;
+    const wantAcid = profile?.acidBlockerDefault && logData.acidBlockerToday === undefined;
+    const wantAntihistamine = profile?.antihistamineDefault && logData.antihistamineToday === undefined;
+    if (wantAcid || wantAntihistamine) {
+      dailyDefaultsAttempted.current = todayKey;
+      // Sequential, not parallel: the second write is a superset of the
+      // first, and serializing guarantees the superset lands last.
+      (async () => {
+        if (wantAcid) await setAcidBlockerToday(true, { reportFailure: false });
+        if (wantAntihistamine) await setAntihistamineToday(true, { reportFailure: false });
+      })();
     }
     // eslint-disable-next-line react-hooks/exhaustive-deps
-  }, [profileLoading, logLoading, profile?.acidBlockerDefault, logData.acidBlockerToday, todayKey]);
+  }, [profileLoading, logLoading, profile?.acidBlockerDefault, profile?.antihistamineDefault, logData.acidBlockerToday, logData.antihistamineToday, todayKey]);
 
   // The moment after "Try again" works is the moment trust is rebuilt —
   // close the loop with a brief confirmation instead of silence.
@@ -163,6 +171,10 @@ function AppShell() {
           0%   { transform: scale(0); opacity: 0; }
           60%  { transform: scale(1.25); }
           100% { transform: scale(1); opacity: 1; }
+        }
+        @keyframes rowIn {
+          from { opacity: 0; transform: translateY(4px); }
+          to   { opacity: 1; transform: translateY(0); }
         }
       `}</style>
 

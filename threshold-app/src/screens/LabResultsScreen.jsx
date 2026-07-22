@@ -18,7 +18,10 @@ export default function LabResultsScreen({ labResults, onSave, onBack }) {
   const [saved, setSaved] = useState(false);
 
   const handleSave = async () => {
-    const ok = await onSave({ noResults, testDate, values });
+    // Entered values and "I don't have these yet" can't both be true —
+    // real numbers win, so the Profile summary can never contradict them.
+    const anyValues = Object.values(values).some(v => String(v ?? '').trim() !== '');
+    const ok = await onSave({ noResults: noResults && !anyValues, testDate, values });
     if (ok === false) return;
     setSaved(true);
     setTimeout(() => setSaved(false), 2000);
